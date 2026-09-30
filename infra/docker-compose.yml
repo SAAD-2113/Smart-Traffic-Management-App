@@ -1,0 +1,23 @@
+# Local PostgreSQL (with PostGIS available for later phases).
+# Start:  docker compose -f infra/docker-compose.yml --env-file infra/.env up -d
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: smart-traffic-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-smart_traffic}
+      POSTGRES_USER: ${POSTGRES_USER:-traffic}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in infra/.env}
+    ports:
+      - "127.0.0.1:5432:5432"   # bound to localhost only, never exposed on the LAN
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-traffic} -d ${POSTGRES_DB:-smart_traffic}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

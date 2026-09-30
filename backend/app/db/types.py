@@ -1,0 +1,50 @@
+from datetime import datetime, timezone
+from enum import Enum as PyEnum
+
+from sqlalchemy import JSON, BigInteger, DateTime, Enum, Integer
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.types import TypeDecorator
+
+
+class UTCDateTime(TypeDecorator[datetime]):
+    """Always timezone-aware UTC, on PostgreSQL and on SQLite (used by the test suite)."""
+
+    impl = DateTime
+    cache_ok = True
+
+    def __init__(self) -> None:
+        super().__init__(timezone=True)
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            raise ValueError("Naive datetimes are not allowed; use timezone-aware UTC values.")
+        return value.astimezone(timezone.utc)
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
+
+
+JSONType = JSON().with_variant(JSONB(), "postgresql")
+BigIntPK = BigInteger().with_variant(Integer(), "sqlite")
+
+
+def enum_column(enum_cls: type[PyEnum]) -> Enum:
+    """Store enums as VARCHAR + CHECK instead of native PostgreSQL enums.
+
+    Adding a new value later is then a simple migration (no ALTER TYPE).
+    """
+    return Enum(
+        enum_cls,
+        native_enum=False,
+        create_constraint=True,
+        length=32,
+        validate_strings=True,
+        values_callable=lambda e: [m.value for m in e],
+        name=enum_cls.__name__.lower(),
+    )

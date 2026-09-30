@@ -1,0 +1,34 @@
+[project]
+name = "smart-traffic-backend"
+version = "0.2.0"
+description = "Backend API for the Smart Traffic Management System (FYP prototype)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy[asyncio]>=2.0.30",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "pydantic[email]>=2.7",
+    "pydantic-settings>=2.3",
+    "pyjwt>=2.8",
+    "argon2-cffi>=23.1",
+    "slowapi>=0.1.9",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "httpx>=0.27",
+    "aiosqlite>=0.20",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["."]
+testpaths = ["tests"]
