@@ -19,7 +19,8 @@ dependencies:
   fl_chart: ^1.2.0
   # Refresh token in the Android Keystore
   flutter_secure_storage: ^11.2.0
-  shared_preferences: ^2.5.5
+  # Settings persistence on the web build (browser localStorage)
+  web: ^1.1.1
   # Offline telemetry queue
   sqflite: ^2.4.4
   path: ^1.9.1
