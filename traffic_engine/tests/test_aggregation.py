@@ -1,9 +1,10 @@
 from datetime import timedelta
 
-from tests.conftest import NOW, build_corridor, offset
 from traffic_engine.aggregation import StopTracker, aggregate, classify_congestion
 from traffic_engine.mapping import map_observation
 from traffic_engine.model import CongestionLevel, DataQuality, DetectorCount, Observation, Source
+
+from tests.conftest import NOW, build_corridor, offset
 
 
 def queue(network, code, n, *, source=Source.SIMULATOR, speed=0.0, start=50.0, prefix="q"):

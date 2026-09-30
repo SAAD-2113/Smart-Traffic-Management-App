@@ -1,12 +1,13 @@
 from datetime import timedelta
 
-from tests.conftest import NOW
-from tests.test_control import PLAN
 from traffic_engine import TrafficEngine
 from traffic_engine.control import Algorithm, PhaseGreen, SignalDecision
 from traffic_engine.geo import haversine_m
 from traffic_engine.model import CongestionLevel, Source
 from traffic_engine.simulation import DemoFleet, LightState, SignalMode, VehicleSpec, VirtualSignal
+
+from tests.conftest import NOW
+from tests.test_control import PLAN
 
 
 def test_virtual_signal_runs_fixed_plan_in_order():

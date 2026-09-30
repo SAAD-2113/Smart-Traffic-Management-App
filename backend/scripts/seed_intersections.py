@@ -4,8 +4,9 @@ The coordinates are PLACEHOLDERS on a straight east-west line. Replace them with
 junctions (PATCH /api/v1/intersections/{id}) before collecting real data. Safe to re-run:
 existing intersections, approaches and links are left untouched.
 
-Usage: uv run python -m scripts.seed_intersections
+Usage: uv run python -m scripts.seed_intersections [--adaptive]
 """
+import argparse
 import asyncio
 import math
 
@@ -35,7 +36,7 @@ async def _try(label: str, coro) -> None:
         print(f"  skipped {label}: {exc.message}")
 
 
-async def main() -> None:
+async def main(adaptive: bool) -> None:
     async with SessionLocal() as db:
         # Pass 1: intersections
         nodes = []
@@ -52,6 +53,7 @@ async def main() -> None:
                         longitude=START_LON + i * SPACING_DEG_LON,
                         radius_m=40,
                         approach_radius_m=250,
+                        controller_type="ADAPTIVE" if adaptive else "FIXED",
                     ),
                 )
                 print(f"Created intersection {code}")
@@ -103,4 +105,7 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Seed the I1-I4 placeholder corridor.")
+    parser.add_argument("--adaptive", action="store_true",
+                        help="Create the intersections in ADAPTIVE mode (advisory decisions from the engine).")
+    asyncio.run(main(parser.parse_args().adaptive))

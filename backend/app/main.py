@@ -9,12 +9,19 @@ from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import request_id_middleware
 from app.core.rate_limit import limiter
-from app.db.session import engine
+from app.db.session import SessionLocal, engine
+from app.services.demo_service import demo
+from app.services.runner import runner
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    if get_settings().traffic_engine_enabled:
+        runner.start(SessionLocal)
     yield
+    if demo.running:
+        await demo.stop(SessionLocal, None)
+    await runner.stop()
     await engine.dispose()
 
 
@@ -25,7 +32,7 @@ def create_app() -> FastAPI:
     is_prod = settings.environment == "production"
     app = FastAPI(
         title=settings.app_name,
-        version="0.2.0",
+        version="1.0.0",
         lifespan=lifespan,
         docs_url=None if is_prod else "/docs",
         redoc_url=None,
@@ -38,7 +45,7 @@ def create_app() -> FastAPI:
         allow_origins=settings.cors_origins,
         allow_credentials=False,
         allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE"],
-        allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
+        allow_headers=["Authorization", "Content-Type", "X-Request-ID", "X-Installation-Id"],
     )
     app.middleware("http")(request_id_middleware)
     register_exception_handlers(app)

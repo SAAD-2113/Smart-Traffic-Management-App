@@ -1,8 +1,9 @@
 from datetime import timedelta
 
-from tests.conftest import NOW, offset
 from traffic_engine.mapping import map_observation
 from traffic_engine.model import Observation, Source, Zone
+
+from tests.conftest import NOW, offset
 
 
 def obs(lat, lon, *, speed=10.0, heading=90.0, key="v1", source=Source.MOBILE, emergency=False):

@@ -18,10 +18,23 @@ config.set_main_option("sqlalchemy.url", get_settings().database_url.replace("%"
 target_metadata = Base.metadata
 
 
+def render_item(type_, obj, autogen_context):
+    """Skip CHECK constraints that belong to an Enum column.
+
+    The Enum type (create_constraint=True) already creates its own CHECK when the table or
+    column is created. Alembic cannot recognise these on SQLAlchemy 2.1 and would render
+    them again, which fails with "constraint already exists".
+    """
+    if type_ == "check" and getattr(obj, "_type_bound", False):
+        return None
+    return False
+
+
 def run_migrations_offline() -> None:
     context.configure(
         url=config.get_main_option("sqlalchemy.url"),
         target_metadata=target_metadata,
+        render_item=render_item,
         literal_binds=True,
         compare_type=True,
         dialect_opts={"paramstyle": "named"},
@@ -34,6 +47,7 @@ def _run(connection: Connection) -> None:
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
+        render_item=render_item,
         compare_type=True,
         render_as_batch=connection.dialect.name == "sqlite",
     )

@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 
 import pytest
-
 from traffic_engine.geo import destination, haversine_m
 from traffic_engine.model import ApproachGeometry, IntersectionGeometry, LinkGeometry, Network
 

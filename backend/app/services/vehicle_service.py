@@ -96,6 +96,9 @@ async def _owned_vehicle(db: AsyncSession, owner: User, vehicle_id: uuid.UUID) -
     return vehicle
 
 
+owned_vehicle = _owned_vehicle
+
+
 async def register_vehicle(
     db: AsyncSession, owner: User, data: VehicleCreate, *, is_simulated: bool = False
 ) -> OwnerVehicleOut:
@@ -197,6 +200,13 @@ async def set_vehicle_status(
         raise AppError(409, "VEHICLE_RETIRED", "A retired vehicle cannot be changed.")
     previous = vehicle.status
     vehicle.status = status
+    if status == VehicleStatus.SUSPENDED and previous != VehicleStatus.SUSPENDED:
+        from app.models.enums import EmergencyEndReason, SessionEndReason
+        from app.services import tracking_service
+
+        await tracking_service.close_all_for_vehicle(
+            db, vehicle.id, SessionEndReason.VEHICLE_SUSPENDED, utcnow(), EmergencyEndReason.VEHICLE_SUSPENDED
+        )
     await audit_repo.record(
         db,
         "vehicle.status_changed",

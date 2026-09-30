@@ -3,7 +3,7 @@ import hashlib
 import secrets
 import uuid
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from argon2 import PasswordHasher
@@ -41,6 +41,7 @@ def burn_password_check(password: str) -> None:
 class AccessClaims:
     user_id: uuid.UUID
     session_id: uuid.UUID | None  # refresh-token family this access token belongs to
+    expires_at: datetime | None = None
 
 
 def create_access_token(user_id: uuid.UUID, session_id: uuid.UUID) -> tuple[str, int]:
@@ -82,7 +83,8 @@ def decode_access_token(token: str) -> AccessClaims:
         session_id = uuid.UUID(payload["sid"]) if payload.get("sid") else None
     except (ValueError, TypeError) as exc:
         raise AppError(401, "INVALID_TOKEN", "Access token is invalid.") from exc
-    return AccessClaims(user_id=user_id, session_id=session_id)
+    expires_at = datetime.fromtimestamp(payload["exp"], tz=timezone.utc)
+    return AccessClaims(user_id=user_id, session_id=session_id, expires_at=expires_at)
 
 
 def new_opaque_token(prefix: str) -> str:

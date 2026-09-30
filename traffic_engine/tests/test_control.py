@@ -1,7 +1,5 @@
 from datetime import timedelta
 
-from tests.conftest import NOW, offset
-from tests.test_aggregation import queue
 from traffic_engine import TrafficEngine
 from traffic_engine.control import (
     Algorithm,
@@ -13,6 +11,9 @@ from traffic_engine.control import (
     default_plan,
 )
 from traffic_engine.model import Observation, Source
+
+from tests.conftest import NOW, offset
+from tests.test_aggregation import queue
 
 PLAN = SignalPlan(phases=(
     Phase("EW", ("Eastbound", "Westbound"), min_green_s=10, max_green_s=60, fixed_green_s=25),

@@ -7,6 +7,8 @@ os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 os.environ["JWT_SECRET"] = "test-secret-that-is-long-enough-for-hs256-signing"
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 os.environ["MAX_VEHICLES_PER_USER"] = "3"
+os.environ["TRAFFIC_ENGINE_ENABLED"] = "false"
+os.environ["DEMO_MODE"] = "false"
 
 import httpx  # noqa: E402
 import pytest  # noqa: E402
@@ -14,7 +16,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine  # no
 
 from app import models  # noqa: E402,F401
 from app.db.base import Base  # noqa: E402
-from app.db.session import get_db  # noqa: E402
+from app.db.session import configure_sqlite, get_db, get_session_factory  # noqa: E402
 from app.main import app as fastapi_app  # noqa: E402
 from app.models.enums import UserRole  # noqa: E402
 from app.services import auth_service  # noqa: E402
@@ -26,6 +28,7 @@ PASSWORD = "Str0ngPassw0rd"
 @pytest.fixture
 async def session_factory(tmp_path):
     engine = create_async_engine(f"sqlite+aiosqlite:///{tmp_path / 'test.db'}")
+    configure_sqlite(engine)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield async_sessionmaker(engine, expire_on_commit=False)
@@ -39,6 +42,7 @@ async def client(session_factory):
             yield session
 
     fastapi_app.dependency_overrides[get_db] = _get_db
+    fastapi_app.dependency_overrides[get_session_factory] = lambda: session_factory
     transport = httpx.ASGITransport(app=fastapi_app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
@@ -78,3 +82,27 @@ def as_role(create_user, login):
         return headers
 
     return _as
+
+
+@pytest.fixture(autouse=True)
+def reset_runtime_state():
+    """Background services keep in-memory state; every test starts clean."""
+    from app.realtime.hub import hub
+    from app.services import network_cache, signal_service
+    from app.services.demo_service import demo
+    from app.services.external_sources import external_store
+    from app.services.runner import runner
+
+    def _reset():
+        runner.reset()
+        hub.reset()
+        external_store.reset()
+        signal_service.decision_store.reset()
+        signal_service.state_store.reset()
+        network_cache.invalidate()
+        demo.fleet, demo.signals, demo.started_at, demo._task = None, {}, None, None
+        demo._sessions, demo._seq, demo._emergency_keys, demo._vehicle_ids = {}, {}, set(), {}
+
+    _reset()
+    yield
+    _reset()

@@ -21,6 +21,7 @@ from app.schemas.intersection import (
     LinkCreate,
     LinkOut,
 )
+from app.services import network_cache
 
 
 def _actor_id(actor: User | None) -> uuid.UUID | None:
@@ -80,6 +81,7 @@ async def create(db: AsyncSession, actor: User | None, data: IntersectionCreate)
         target_type="intersection", target_id=intersection.id, details={"code": data.code},
     )
     await db.commit()
+    network_cache.invalidate()
     return intersection
 
 
@@ -105,6 +107,7 @@ async def update(
         target_id=intersection.id, details={"fields": sorted(changes)},
     )
     await db.commit()
+    network_cache.invalidate()
     return intersection
 
 
@@ -117,6 +120,7 @@ async def deactivate(db: AsyncSession, actor: User, intersection_id: uuid.UUID) 
         target_type="intersection", target_id=intersection.id,
     )
     await db.commit()
+    network_cache.invalidate()
 
 
 async def add_approach(
@@ -145,6 +149,7 @@ async def add_approach(
         target_type="intersection", target_id=intersection.id, details={"approach": data.name},
     )
     await db.commit()
+    network_cache.invalidate()
     return approach
 
 
@@ -178,4 +183,5 @@ async def add_link(
         target_type="intersection", target_id=source.id, details={"to": target.code},
     )
     await db.commit()
+    network_cache.invalidate()
     return link

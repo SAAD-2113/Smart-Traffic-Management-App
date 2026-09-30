@@ -29,6 +29,34 @@ class Settings(BaseSettings):
     demo_mode: bool = False
     max_vehicles_per_user: int = Field(default=3, ge=1, le=20)
 
+    # Telemetry validation (see docs/ARCHITECTURE.md, "Telemetry packet specification")
+    live_window_s: float = Field(default=15.0, ge=5, le=60)
+    backfill_max_age_s: float = Field(default=600.0, ge=60, le=3600)
+    future_tolerance_s: float = Field(default=30.0, ge=1, le=300)
+    usable_accuracy_m: float = Field(default=50.0, gt=0, le=200)
+    max_accuracy_m: float = Field(default=500.0, gt=0, le=5000)
+    max_speed_mps: float = Field(default=70.0, gt=0, le=150)
+    max_jump_speed_mps: float = Field(default=80.0, gt=0, le=300)
+    min_packet_interval_s: float = Field(default=0.5, ge=0, le=10)
+    telemetry_batch_max: int = Field(default=100, ge=1, le=500)
+    session_idle_timeout_s: float = Field(default=600.0, ge=60, le=86400)
+
+    # Emergency vehicles
+    emergency_stale_s: float = Field(default=120.0, ge=15, le=3600)
+    emergency_max_duration_s: float = Field(default=3600.0, ge=300, le=6 * 3600)
+    emergency_start_max_fix_age_s: float = Field(default=30.0, ge=5, le=600)
+
+    # Traffic engine runner
+    traffic_engine_enabled: bool = True
+    traffic_cycle_s: float = Field(default=2.0, ge=0.5, le=60)
+    metrics_persist_interval_s: float = Field(default=30.0, ge=5, le=3600)
+    telemetry_retention_days: int = Field(default=30, ge=1, le=3650)
+    simulated_telemetry_retention_hours: int = Field(default=24, ge=1, le=24 * 365)
+
+    # Demo simulation (never enable on a production deployment)
+    demo_default_vehicles: int = Field(default=30, ge=1, le=200)
+    demo_max_vehicles: int = Field(default=80, ge=1, le=500)
+
     password_reset_url: str = "http://localhost:8080/reset-password"
     smtp_host: str | None = None
     smtp_port: int = 587
@@ -51,6 +79,8 @@ class Settings(BaseSettings):
                 raise ValueError("SMTP_HOST is required in production so reset links never go to logs.")
             if "*" in self.cors_origins:
                 raise ValueError("CORS_ORIGINS must not contain '*' in production.")
+            if self.demo_mode:
+                raise ValueError("DEMO_MODE must be false in production.")
         return self
 
 

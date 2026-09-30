@@ -20,12 +20,17 @@ async def main() -> int:
     parser.add_argument("--role", choices=[UserRole.ADMIN.value, UserRole.MANAGER.value], required=True)
     parser.add_argument("--email", required=True)
     parser.add_argument("--name", required=True)
+    parser.add_argument("--password-stdin", action="store_true",
+                        help="Read the password from standard input (for scripts); never pass it as an argument.")
     args = parser.parse_args()
 
-    password = getpass.getpass("Password: ")
-    if password != getpass.getpass("Confirm password: "):
-        print("Passwords do not match.")
-        return 1
+    if args.password_stdin:
+        password = sys.stdin.readline().rstrip("\n")
+    else:
+        password = getpass.getpass("Password: ")
+        if password != getpass.getpass("Confirm password: "):
+            print("Passwords do not match.")
+            return 1
     try:
         validate_password_strength(password)
     except ValueError as exc:
