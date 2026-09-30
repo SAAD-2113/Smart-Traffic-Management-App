@@ -55,7 +55,7 @@ login screen (`http://<PC IP>:8000`).
 |---|---|---|
 | 1 | Register, log in, close and reopen the app | Still logged in (refresh token), no password asked |
 | 2 | Register a vehicle, start tracking, deny location permission | Clear message, tracking does not start |
-| 3 | Allow permission, start tracking, walk/drive | Notification shown; Home shows GPS quality, speed, packets sent; the manager live map shows the vehicle within ~2 s |
+| 3 | Allow permission, start tracking, walk/drive | Notification shown; Home shows GPS quality, speed, packets sent; the manager live map shows the vehicle within a few seconds |
 | 4 | Turn off Wi-Fi/mobile data for 2 minutes while tracking, then back on | Queue count grows, then drains in order; manager track has no gap older than 10 min |
 | 5 | Put the phone indoors (poor GPS) | GPS quality drops to Poor/No fix; manager view shows "low accuracy", metrics ignore the vehicle |
 | 6 | Enable a mock-location app | Packets stored but flagged, excluded from traffic metrics |

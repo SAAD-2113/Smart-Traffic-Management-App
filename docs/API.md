@@ -103,8 +103,7 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-- 1 to 500 packets per request (the app sends 1 per request while online, larger batches when it
-  catches up after being offline).
+- 1 to 500 packets per request (the app uploads its queue every 2 s, up to 100 packets at a time).
 - The Vehicle ID and owner come from the URL and the access token, never from the packet.
 - `emergency` in a packet is only a hint: emergency status is taken from the server-side active,
   authorized emergency event.
