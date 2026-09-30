@@ -52,3 +52,5 @@ class Units {
 
   static String percent(double? ratio) => ratio == null ? '—' : '${(ratio * 100).toStringAsFixed(0)} %';
 }
+
+String plural(int count, String noun, [String? pluralNoun]) => '$count ${count == 1 ? noun : (pluralNoun ?? '${noun}s')}';

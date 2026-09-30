@@ -17,8 +17,6 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final live = context.watch<LiveController>();
     final o = live.overview;
-    final width = MediaQuery.sizeOf(context).width;
-    final columns = width >= 1300 ? 4 : (width >= 700 ? 3 : 2);
 
     return Scaffold(
       appBar: AppBar(
@@ -51,13 +49,15 @@ class DashboardScreen extends StatelessWidget {
                           ' · ${Units.speed(e.speedMps)}',
                     ),
                   ),
-                GridView.count(
-                  crossAxisCount: columns,
+                GridView(
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 340,
+                    mainAxisExtent: 118,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                  ),
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: columns == 2 ? 1.35 : 1.8,
                   children: [
                     MetricCard(
                       label: 'Active vehicles',
@@ -181,7 +181,7 @@ class _IntersectionRow extends StatelessWidget {
           ),
           title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: Text(
-            '${item.observed.vehicleCount} vehicles observed · ${Units.speed(item.observed.avgSpeedMps)}'
+            '${plural(item.observed.vehicleCount, 'vehicle')} observed · ${Units.speed(item.observed.avgSpeedMps)}'
             '${item.calculated.avgWaitingTimeS != null ? ' · wait ${item.calculated.avgWaitingTimeS!.toStringAsFixed(0)} s' : ''}'
             '${signal != null ? '\nSignal: ${signal.phaseName} ${signal.state.replaceAll('_', ' ').toLowerCase()} (${signal.mode.replaceAll('_', ' ').toLowerCase()})' : ''}',
           ),

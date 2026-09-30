@@ -130,7 +130,8 @@ class _VehicleTile extends StatelessWidget {
           '${l?.intersectionCode != null ? ' · near ${l!.intersectionCode}' : ''}',
         ),
         trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-          Text(Units.speed(l?.speedMps), style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(v.trackingStatus == 'NOT_TRACKING' ? '—' : Units.speed(l?.speedMps),
+              style: const TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           StatusChip(label: statusLabel, color: statusColor),
         ]),

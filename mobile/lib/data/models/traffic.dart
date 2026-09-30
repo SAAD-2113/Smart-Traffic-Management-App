@@ -181,7 +181,7 @@ class HistoryPoint {
   HistoryPoint(this.j);
   final Json j;
   DateTime get t => parseTime(j['t'])!;
-  double get observedVehicles => toDouble(j['observedVehicles']) ?? 0;
+  double? get observedVehicles => toDouble(j['observedVehicles']);
   double? get estimatedVehicles => toDouble(j['estimatedVehicles']);
   double? get avgSpeedMps => toDouble(j['avgSpeedMps']);
   double? get avgWaitingTimeS => toDouble(j['avgWaitingTimeS']);

@@ -155,7 +155,7 @@ class OverviewOut(ApiModel):
 
 class HistoryPointOut(ApiModel):
     t: datetime
-    observed_vehicles: float
+    observed_vehicles: float | None = Field(description="Null when no source reported in the bucket.")
     estimated_vehicles: float | None
     avg_speed_mps: float | None
     avg_waiting_time_s: float | None

@@ -48,13 +48,15 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 12),
           _SpeedCard(tracking: tracking),
           const SizedBox(height: 12),
-          GridView.count(
-            crossAxisCount: 2,
+          GridView(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 300,
+              mainAxisExtent: 118,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+            ),
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.45,
             children: [
               _gpsCard(tracking),
               _connectionCard(tracking),

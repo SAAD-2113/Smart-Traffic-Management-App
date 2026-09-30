@@ -31,7 +31,8 @@ def _bucketize(rows: list[TrafficMetric], bucket_s: int) -> list[HistoryPointOut
         estimates = [r.est_vehicle_count for r in group if r.est_vehicle_count is not None]
         points.append(HistoryPointOut(
             t=datetime.fromtimestamp(key * bucket_s, tz=timezone.utc),
-            observed_vehicles=round(sum(r.observed_vehicle_count for r in group) / len(group), 2),
+            # Snapshots without any data say nothing about traffic: a gap, not zero vehicles.
+            observed_vehicles=_mean([float(r.observed_vehicle_count) for r in group if r.data_quality != "NONE"]),
             estimated_vehicles=_mean(estimates),
             avg_speed_mps=_mean([r.observed_avg_speed_mps for r in group if r.observed_avg_speed_mps is not None]),
             avg_waiting_time_s=_mean([r.calc_avg_waiting_time_s for r in group if r.calc_avg_waiting_time_s is not None]),

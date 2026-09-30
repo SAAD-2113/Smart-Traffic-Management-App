@@ -42,9 +42,12 @@ class SmartTrafficApp extends StatelessWidget {
         builder: (context, config, _) => MaterialApp(
           title: 'Smart Traffic',
           debugShowCheckedModeBanner: false,
+          navigatorKey: _navigatorKey,
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: config.themeMode,
+          // Role controllers sit above the navigator so every pushed screen can reach them.
+          builder: (context, child) => _SessionScope(child: child!),
           home: const _AuthGate(),
         ),
       ),
@@ -52,41 +55,63 @@ class SmartTrafficApp extends StatelessWidget {
   }
 }
 
+final _navigatorKey = GlobalKey<NavigatorState>();
+
+/// Provides the controllers of the signed-in role. Recreated when the user changes.
+class _SessionScope extends StatelessWidget {
+  const _SessionScope({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthController>();
+    final user = auth.user;
+    if (auth.status != AuthStatus.signedIn || user == null) return child;
+    if (user.isManager) {
+      return ChangeNotifierProvider(
+        key: ValueKey('manager-${user.id}'),
+        create: (c) => LiveController(c.read<ApiClient>(), c.read<ManagerRepository>())..start(),
+        child: child,
+      );
+    }
+    return MultiProvider(
+      key: ValueKey('driver-${user.id}'),
+      providers: [
+        ChangeNotifierProvider(create: (c) => DriverController(c.read<VehicleRepository>(), c.read<AppConfig>())..load()),
+        ChangeNotifierProvider(
+          create: (c) => TrackingController(
+            repository: c.read<VehicleRepository>(),
+            location: c.read<LocationService>(),
+            queue: c.read<TelemetryQueue>(),
+          ),
+        ),
+      ],
+      child: child,
+    );
+  }
+}
+
 /// Chooses the driver or manager experience from the role the server returned.
+AuthStatus? _lastStatus;
+
 class _AuthGate extends StatelessWidget {
   const _AuthGate();
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
+    // Screens pushed during a session must not outlive it (their controllers are gone).
+    if (_lastStatus == AuthStatus.signedIn && auth.status != AuthStatus.signedIn) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _navigatorKey.currentState?.popUntil((r) => r.isFirst));
+    }
+    _lastStatus = auth.status;
     switch (auth.status) {
       case AuthStatus.unknown:
         return const Scaffold(body: LoadingView(label: 'Connecting…'));
       case AuthStatus.signedOut:
         return const LoginScreen();
       case AuthStatus.signedIn:
-        final user = auth.user!;
-        if (user.isManager) {
-          return ChangeNotifierProvider(
-            key: ValueKey('manager-${user.id}'),
-            create: (c) => LiveController(c.read<ApiClient>(), c.read<ManagerRepository>())..start(),
-            child: const ManagerShell(),
-          );
-        }
-        return MultiProvider(
-          key: ValueKey('driver-${user.id}'),
-          providers: [
-            ChangeNotifierProvider(create: (c) => DriverController(c.read<VehicleRepository>(), c.read<AppConfig>())..load()),
-            ChangeNotifierProvider(
-              create: (c) => TrackingController(
-                repository: c.read<VehicleRepository>(),
-                location: c.read<LocationService>(),
-                queue: c.read<TelemetryQueue>(),
-              ),
-            ),
-          ],
-          child: const DriverShell(),
-        );
+        return auth.user!.isManager ? const ManagerShell() : const DriverShell();
     }
   }
 }

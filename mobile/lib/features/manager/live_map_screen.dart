@@ -44,10 +44,16 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
         _map.move(LatLng(nodes.first.latitude, nodes.first.longitude), 16);
         return;
       }
-      _map.fitCamera(CameraFit.bounds(
-        bounds: LatLngBounds.fromPoints([for (final n in nodes) LatLng(n.latitude, n.longitude)]),
-        padding: const EdgeInsets.all(60),
-      ));
+      // Include each approach zone, not just the centre points.
+      final points = <LatLng>[];
+      for (final n in nodes) {
+        final dLat = n.approachRadiusM / 111320.0;
+        final dLon = n.approachRadiusM / (111320.0 * math.cos(n.latitude * math.pi / 180));
+        points
+          ..add(LatLng(n.latitude - dLat, n.longitude - dLon))
+          ..add(LatLng(n.latitude + dLat, n.longitude + dLon));
+      }
+      _map.fitCamera(CameraFit.bounds(bounds: LatLngBounds.fromPoints(points), padding: const EdgeInsets.fromLTRB(24, 64, 24, 24)));
     });
   }
 
