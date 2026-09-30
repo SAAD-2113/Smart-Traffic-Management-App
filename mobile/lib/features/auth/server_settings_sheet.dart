@@ -28,7 +28,7 @@ class _ServerSettingsSheetState extends State<_ServerSettingsSheet> {
   bool _testing = false;
 
   Future<void> _test() async {
-    final value = _controller.text.trim();
+    final value = _controller.text.trim().replaceAll(RegExp(r'/+$'), '');
     final problem = AppConfig.validateServerUrl(value);
     setState(() {
       _error = problem;
@@ -37,12 +37,14 @@ class _ServerSettingsSheetState extends State<_ServerSettingsSheet> {
     if (problem != null) return;
     setState(() => _testing = true);
     try {
-      final response = await http.get(Uri.parse('$value/api/v1/health')).timeout(const Duration(seconds: 6));
+      // A free cloud server that was asleep can take up to a minute to answer its first request.
+      final response = await http.get(Uri.parse('$value/api/v1/health')).timeout(const Duration(seconds: 75));
       _ok = response.statusCode == 200 && response.body.contains('"database":"ok"');
       _result = _ok ? 'Connected. The server and its database are running.' : 'The server answered, but reports a problem (${response.statusCode}).';
     } catch (_) {
       _ok = false;
-      _result = 'No answer. Is the backend running, and is the phone on the same network?';
+      _result = 'No answer. Check the address. A server on your PC must be running and on the same Wi-Fi; '
+          'a cloud server may still be starting, so try again in a minute.';
     }
     if (mounted) setState(() => _testing = false);
   }
@@ -67,8 +69,8 @@ class _ServerSettingsSheetState extends State<_ServerSettingsSheet> {
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         Text('Server address', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 6),
-        const Text('The address of the Smart Traffic backend, for example http://192.168.1.20:8000 on the same '
-            'Wi-Fi, or an https:// address when the backend is published through a tunnel.'),
+        const Text('The address of the Smart Traffic backend: its https:// address when it is hosted in the cloud, '
+            'or for example http://192.168.1.20:8000 for a server on your PC on the same Wi-Fi.'),
         const SizedBox(height: 16),
         TextField(
           controller: _controller,
@@ -81,6 +83,10 @@ class _ServerSettingsSheetState extends State<_ServerSettingsSheet> {
           const SizedBox(height: 8),
           const Text('Warning: plain http:// to a public address sends data unencrypted. Use https:// outside the lab.',
               style: TextStyle(color: StatusColors.danger)),
+        ],
+        if (_testing) ...[
+          const SizedBox(height: 12),
+          const Text('Waiting for the server. A cloud server that was asleep can take up to a minute to wake up.'),
         ],
         if (_result != null) ...[
           const SizedBox(height: 12),

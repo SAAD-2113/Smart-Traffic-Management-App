@@ -66,7 +66,7 @@ class AppConfig extends ChangeNotifier {
   static String? validateServerUrl(String value) {
     final uri = Uri.tryParse(value.trim());
     if (uri == null || !(uri.scheme == 'http' || uri.scheme == 'https') || uri.host.isEmpty) {
-      return 'Enter an address like http://192.168.1.20:8000';
+      return 'Enter an address like https://your-server.onrender.com or http://192.168.1.20:8000';
     }
     if (uri.path.isNotEmpty && uri.path != '/') return 'Enter only the server address, without a path';
     return null;

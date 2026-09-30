@@ -15,7 +15,8 @@ import 'api_exception.dart';
 class ApiClient {
   ApiClient(this._config, this._tokens, {http.Client? httpClient}) : _http = httpClient ?? http.Client();
 
-  static const requestTimeout = Duration(seconds: 15);
+  /// Long enough for a sleeping free-tier cloud server to wake up on the first request.
+  static const requestTimeout = Duration(seconds: 60);
 
   final AppConfig _config;
   final TokenStore _tokens;

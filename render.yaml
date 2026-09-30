@@ -1,0 +1,41 @@
+# Render Blueprint: hosts the backend in the cloud so no PC has to run it.
+# Creates a PostgreSQL database and a web service built from ./Dockerfile.
+# How to use it: docs/DEPLOY_CLOUD.md (Render dashboard -> New -> Blueprint -> this repository).
+databases:
+  - name: smart-traffic-db
+    plan: free
+    region: singapore
+    databaseName: smart_traffic
+    user: smart_traffic
+
+services:
+  - type: web
+    name: smart-traffic-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: smart-traffic-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      # Prototype/demo server: "development" allows the demo simulation (production refuses it
+      # and requires SMTP for password-reset emails; reset links go to the service log here).
+      - key: ENVIRONMENT
+        value: development
+      - key: DEMO_MODE
+        value: "true"
+      # First start only: creates the placeholder I1-I4 corridor if it does not exist.
+      - key: SEED_CORRIDOR
+        value: adaptive
+      # Your admin (manager) login, asked for when you create the Blueprint. Password: at least
+      # 10 characters with a letter and a digit. Changing these later does not change an existing account.
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        sync: false
+      - key: BOOTSTRAP_ADMIN_PASSWORD
+        sync: false

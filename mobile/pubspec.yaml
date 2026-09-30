@@ -2,7 +2,7 @@ name: smart_traffic
 description: "Smart Traffic Management System: vehicle data collection (driver) and traffic management (manager) app."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.13.4

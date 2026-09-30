@@ -3,6 +3,9 @@
 This guide takes a Windows 10/11 PC from nothing to: backend running, manager dashboard open, and the
 Android app on a phone sending GPS data. Commands are for PowerShell.
 
+> Don't want your PC to be the server? Host it in the cloud instead: `docs/DEPLOY_CLOUD.md`. Then you
+> only need the APK on the phones (step 5 and 6 below).
+
 ```
 Phone (Android app) ──Wi-Fi──> PC: backend :8000 ──> PostgreSQL (Docker) or SQLite file
 Browser (manager dashboard) ───┘         └── SUMO bridge (optional)
@@ -112,7 +115,7 @@ backend over HTTPS with a tunnel (e.g. Cloudflare Tunnel) and start uvicorn with
 
 ## 5. Install the Android app
 
-**Provided APK:** copy `dist/smart-traffic-v1.0.0-arm64-v8a.apk` (most phones) or the universal `dist/smart-traffic-v1.0.0.apk` to the phone and open it (allow "Install unknown apps"
+**Provided APK:** copy `dist/smart-traffic-v1.0.1-arm64-v8a.apk` (most phones) or the universal `dist/smart-traffic-v1.0.1.apk` to the phone and open it (allow "Install unknown apps"
 for your file manager when asked). Android 7.0 or newer.
 
 **Build it yourself:**

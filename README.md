@@ -22,12 +22,14 @@ data (demo fleet, SUMO) is always labelled as such and kept separate from real v
 | `mobile/` | Flutter app: driver and manager roles in one app (Android APK + web dashboard) | Done |
 | `sumo_bridge/` | TraCI bridge between Eclipse SUMO and the backend, corridor generator | Done |
 | `infra/` | Docker Compose for PostgreSQL (+PostGIS) | Done |
+| `Dockerfile`, `render.yaml` | Server image and one-click Render deployment | Done |
 | `docs/` | Architecture, API, security and privacy, testing, Windows setup, ADRs | |
 | `dist/` | The built Android APK | |
 
 ## Start here
 
-1. `docs/SETUP_WINDOWS.md`: install, run the backend, install the APK, connect a phone.
+1. Run the server: **in the cloud** with `docs/DEPLOY_CLOUD.md` (no PC needed, phones connect from
+   anywhere), or **on your PC** with `docs/SETUP_WINDOWS.md` (phones on the same Wi-Fi).
 2. `docs/ARCHITECTURE.md`: system design, telemetry packet spec, traffic processing, emergency flow.
 3. `docs/API.md`, `docs/SECURITY_AND_PRIVACY.md`, `docs/TESTING.md`.
 
@@ -41,9 +43,9 @@ uv run python -m scripts.seed_intersections --adaptive
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Install `dist/smart-traffic-v1.0.0-arm64-v8a.apk` (or the universal `dist/smart-traffic-v1.0.0.apk`) on an Android phone on the same Wi-Fi, tap **Server** on the
-login screen and enter `http://<PC IP>:8000`.
+Install `dist/smart-traffic-v1.0.1-arm64-v8a.apk` (or the universal `dist/smart-traffic-v1.0.1.apk`) on an Android phone on the same Wi-Fi, tap **Server** on the
+login screen and enter `http://<PC IP>:8000`. For a cloud server, enter its `https://` address instead.
 
 ## Tests
 
-`traffic_engine`: 42 · `backend`: 98 · `mobile`: 26 (see `docs/TESTING.md`).
+`traffic_engine`: 42 · `backend`: 109 · `mobile`: 26 (see `docs/TESTING.md`).

@@ -117,6 +117,13 @@ in the code. Important ones:
 | `scripts.create_user` | Create an ADMIN or MANAGER account |
 | `scripts.seed_intersections [--adaptive]` | Placeholder I1-I4 corridor with approaches and links |
 | `scripts.export_research_dataset --hours 24 --out data.csv` | Anonymised telemetry export (see `docs/SECURITY_AND_PRIVACY.md`) |
+| `scripts.bootstrap` | Start-up setup for hosted servers from `BOOTSTRAP_ADMIN_EMAIL`/`_PASSWORD` and `SEED_CORRIDOR` (run by `start.sh`) |
+
+## Hosting
+
+`Dockerfile` (repository root) builds the server image; `start.sh` migrates, bootstraps and serves on
+`$PORT` behind the host's HTTPS proxy. `render.yaml` deploys it to Render with a PostgreSQL database.
+Plain `postgres://...?sslmode=require` URLs from hosting providers are accepted. See `docs/DEPLOY_CLOUD.md`.
 
 ## Endpoints
 

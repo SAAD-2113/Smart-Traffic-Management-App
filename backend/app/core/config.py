@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.engine import make_url
 
 
 class Settings(BaseSettings):
@@ -63,6 +64,25 @@ class Settings(BaseSettings):
     smtp_username: str | None = None
     smtp_password: SecretStr | None = None
     smtp_from: str = "no-reply@smart-traffic.local"
+
+    @field_validator("database_url")
+    @classmethod
+    def _async_driver(cls, v: str) -> str:
+        """Accept the plain postgres:// URLs that hosting providers hand out.
+
+        The app needs the asyncpg driver, and asyncpg takes `ssl=` instead of libpq's `sslmode=`.
+        """
+        url = make_url(v)
+        if url.drivername in ("postgres", "postgresql"):
+            url = url.set(drivername="postgresql+asyncpg")
+        if url.drivername == "postgresql+asyncpg":
+            query = dict(url.query)
+            sslmode = query.pop("sslmode", None)
+            query.pop("channel_binding", None)  # libpq-only option
+            if sslmode and "ssl" not in query:
+                query["ssl"] = sslmode
+            url = url.set(query=query)
+        return url.render_as_string(hide_password=False)
 
     @field_validator("jwt_secret")
     @classmethod

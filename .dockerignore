@@ -1,0 +1,19 @@
+# Only backend/ and traffic_engine/ go into the image. Never send secrets or local data.
+**/.env
+**/.env.*
+!**/.env.example
+**/*.db
+**/*.db-*
+**/.venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+.git
+.github
+mobile
+dist
+docs
+infra
+sumo_bridge
+**/.ruff_cache
+backend/tests

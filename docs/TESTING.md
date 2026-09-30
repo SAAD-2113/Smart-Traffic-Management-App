@@ -4,7 +4,7 @@
 
 ```powershell
 cd traffic_engine;  uv run --group dev pytest        # 42 tests, pure Python
-cd backend;         uv run pytest                    # 98 tests, throwaway SQLite per test (no Docker needed)
+cd backend;         uv run pytest                    # 109 tests, throwaway SQLite per test (no Docker needed)
 cd mobile;          flutter analyze; flutter test    # 26 tests
 ```
 
@@ -29,6 +29,7 @@ dashboard on every push.
 | Controller clients: invalid key, scope, SUMO observations feed the engine, only SUMO may flag emergencies | 11 | `test_controller_clients.py`, `test_controller_io.py` |
 | Live dashboard WebSocket: auth message required, end users refused, snapshots delivered | 3 | `test_live_ws.py` |
 | Demo simulation: refused when disabled, runs through the real pipeline, API | 4 + 5 | `test_demo.py`, `traffic_engine/tests/test_simulation.py` |
+| Hosting: provider database URLs converted for asyncpg, start-up bootstrap creates the admin and corridor once, rejects bad settings | 11 | `test_deploy.py` |
 | Mobile: packet builder (SI units, UTC, accuracy/interval filters, derived speed, unknown speed stays null) | 7 | `mobile/test/packet_builder_test.dart` |
 | Mobile: offline queue, ordered delivery, backfill window, backoff, errors keep packets, closed session stops | 9 | `upload_policy_test.dart`, `tracking_controller_test.dart` |
 | Mobile: validators, server address, unit conversion | 8 | `config_and_units_test.dart` |
@@ -43,6 +44,9 @@ dashboard on every push.
   seconds): SUMO vehicles appear as source `SUMO` with HIGH data quality, adaptive decisions are served,
   the bridge reports light states (connected), and the SUMO ambulance is detected on the Eastbound
   approach with an ETA, producing EMERGENCY_PRIORITY decisions at I1 then I2 that the bridge applied.
+- **Container:** the `Dockerfile` image run against an empty PostgreSQL with a provider-style URL: migrations,
+  bootstrap (admin + corridor), login, demo, live WebSocket, per-client rate limits behind a proxy
+  (`X-Forwarded-For`), and an idempotent restart.
 - **APK:** checked statically (manifest, permissions, components, dex references, signature). It has
   not been installed on a physical phone in the build environment; do that first (below).
 
