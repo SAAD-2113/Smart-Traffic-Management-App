@@ -1,0 +1,37 @@
+name: smart_traffic
+description: "Smart Traffic Management System: vehicle data collection (driver) and traffic management (manager) app."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  # GPS with an Android foreground service for tracking while the app is in the background
+  geolocator: ^14.1.1
+  # OpenStreetMap tiles; no API key embedded in the APK
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
+  fl_chart: ^1.2.0
+  # Refresh token in the Android Keystore
+  flutter_secure_storage: ^11.2.0
+  shared_preferences: ^2.5.5
+  # Offline telemetry queue
+  sqflite: ^2.4.4
+  path: ^1.9.1
+  provider: ^6.1.5+1
+  http: ^1.6.0
+  web_socket_channel: ^3.0.3
+  intl: ^0.20.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
