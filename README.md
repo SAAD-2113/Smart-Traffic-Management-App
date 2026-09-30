@@ -41,7 +41,7 @@ uv run python -m scripts.seed_intersections --adaptive
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Install `dist/smart-traffic-v1.0.0.apk` on an Android phone on the same Wi-Fi, tap **Server** on the
+Install `dist/smart-traffic-v1.0.0-arm64-v8a.apk` (or the universal `dist/smart-traffic-v1.0.0.apk`) on an Android phone on the same Wi-Fi, tap **Server** on the
 login screen and enter `http://<PC IP>:8000`.
 
 ## Tests
