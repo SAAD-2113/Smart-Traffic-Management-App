@@ -26,7 +26,7 @@ async def overview(_: User = Depends(require_manager), db: AsyncSession = Depend
         items.append(SignalOverviewItem(
             intersection_id=info.id, code=code, name=info.name, controller_type=info.controller_type,
             actuator=info.actuator, connected=signal_service.state_store.connected(code, now),
-            plan=signal_service.plan_out(info.id, code, plan, is_default, updated_at),
+            plan=signal_service.plan_out(info.id, code, plan, is_default, updated_at, network.intersections[code]),
             decision=await signal_service.latest_valid_decision(db, info.id, code, now),
             state=await signal_service.latest_state(db, info.id, code),
         ))

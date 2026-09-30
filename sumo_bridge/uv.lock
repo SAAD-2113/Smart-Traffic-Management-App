@@ -1,0 +1,158 @@
+version = 1
+revision = 3
+requires-python = ">=3.11"
+
+[[package]]
+name = "anyio"
+version = "4.15.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "idna" },
+    { name = "typing-extensions", marker = "python_full_version < '3.15'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a9/d2/f4d173e22df740bc37b1db102b386ba719b66e95b0f0d751f556b387e6d2/anyio-4.15.1.tar.gz", hash = "sha256:9f28306018cbd6d329e64a36d58256edff76dd996fe423bc957326e578b82a94", size = 276966, upload-time = "2026-09-05T10:42:39.44Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/12/b8/4bd346e22b28902df4d651910f5242c28d84e4a5c2435ca5c3f797ed7e2e/anyio-4.15.1-py3-none-any.whl", hash = "sha256:6152fdbbf9a77fdec97731721bebf7c4c44f7c29b424b0065826173efc7ed101", size = 132079, upload-time = "2026-09-05T10:42:37.923Z" },
+]
+
+[[package]]
+name = "certifi"
+version = "2026.7.22"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a3/c2/24167ea9858356b47a87a50d39908bfdb72ceeefe0041586e704e5376b3a/certifi-2026.7.22.tar.gz", hash = "sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55", size = 138112, upload-time = "2026-07-22T03:35:12.644Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0b/a7/71ac2cff56fec219ed242bb11b8efb69fcc4bec75db06fb7bfe35de520e6/certifi-2026.7.22-py3-none-any.whl", hash = "sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775", size = 136983, upload-time = "2026-07-22T03:35:11.276Z" },
+]
+
+[[package]]
+name = "eclipse-sumo"
+version = "1.27.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "sumo-data" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/96/6e/fef6f21243e6f58b57e8356af0d03e45733bf7817afc059b20aec375f431/eclipse_sumo-1.27.1-py3-none-macosx_14_0_arm64.whl", hash = "sha256:2255536237d81383efe5e53862b030e2dee6e18025210ff6ba4819f11edbb0d4", size = 53827663, upload-time = "2026-06-25T09:47:57.01Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/bc/4377e881434460531762e16cffb41a49a5c625e902193642e1af8d8e2a31/eclipse_sumo-1.27.1-py3-none-manylinux2014_aarch64.manylinux_2_17_aarch64.whl", hash = "sha256:e557879511b66511943f0fa1b0f95d2c135d26e2b681665546deb8001133edd5", size = 77553233, upload-time = "2026-06-25T09:48:02.481Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/00/0b88a931c50e277a46ee6110216ef8ca299b064cca82d1fc481d4155754a/eclipse_sumo-1.27.1-py3-none-manylinux2014_x86_64.manylinux_2_17_x86_64.whl", hash = "sha256:97abddcb7395c25538f22a272ef67ca77c8a625d3eec6010eed5b62dfac011f3", size = 89032738, upload-time = "2026-06-25T09:48:07.868Z" },
+    { url = "https://files.pythonhosted.org/packages/31/ff/ac71562ad6dade48642c475c80d2c159ec7a83907e8ab9bb2d2f7fb59bda/eclipse_sumo-1.27.1-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:4b56e8bb331bee39d5a102feda7b3441fdfca4704a9ba4f7ed2cdf99ac19d915", size = 126468252, upload-time = "2026-06-25T09:48:15.001Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/13/401d9a7f8dbd404c7ec9cef95a7762a38d71088c38bf964789bc012428ce/eclipse_sumo-1.27.1-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:fd96ace26bccb78312c8c04464c0894a5432db8e2c072388b73e8ae3a6a43586", size = 147105795, upload-time = "2026-06-25T09:48:22.856Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/c4/f12aa67ed92aae1b52de68c4dd73398119c16a2e4921050161d829bc8566/eclipse_sumo-1.27.1-py3-none-win_amd64.whl", hash = "sha256:80f68e916d10696a677a60db81f13d5340efae9451eaa8f3088e67e89870d6aa", size = 165702015, upload-time = "2026-06-25T09:48:30.96Z" },
+]
+
+[[package]]
+name = "h11"
+version = "0.16.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/01/ee/02a2c011bdab74c6fb3c75474d40b3052059d95df7e73351460c8588d963/h11-0.16.0.tar.gz", hash = "sha256:4e35b956cf45792e4caa5885e69fba00bdbc6ffafbfa020300e549b208ee5ff1", size = 101250, upload-time = "2025-04-24T03:35:25.427Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/04/4b/29cac41a4d98d144bf5f6d33995617b185d14b22401f75ca86f384e87ff1/h11-0.16.0-py3-none-any.whl", hash = "sha256:63cf8bbe7522de3bf65932fda1d9c2772064ffb3dae62d55932da54b31cb6c86", size = 37515, upload-time = "2025-04-24T03:35:24.344Z" },
+]
+
+[[package]]
+name = "httpcore"
+version = "1.0.9"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "h11" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/06/94/82699a10bca87a5556c9c59b5963f2d039dbd239f25bc2a63907a05a14cb/httpcore-1.0.9.tar.gz", hash = "sha256:6e34463af53fd2ab5d807f399a9b45ea31c3dfa2276f15a2c3f00afff6e176e8", size = 85484, upload-time = "2025-04-24T22:06:22.219Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7e/f5/f66802a942d491edb555dd61e3a9961140fd64c90bce1eafd741609d334d/httpcore-1.0.9-py3-none-any.whl", hash = "sha256:2d400746a40668fc9dec9810239072b40b4484b640a8c38fd654a024c7a1bf55", size = 78784, upload-time = "2025-04-24T22:06:20.566Z" },
+]
+
+[[package]]
+name = "httpx"
+version = "0.28.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "certifi" },
+    { name = "httpcore" },
+    { name = "idna" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/b1/df/48c586a5fe32a0f01324ee087459e112ebb7224f646c0b5023f5e79e9956/httpx-0.28.1.tar.gz", hash = "sha256:75e98c5f16b0f35b567856f597f06ff2270a374470a5c2392242528e3e3e42fc", size = 141406, upload-time = "2024-12-06T15:37:23.222Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/39/e50c7c3a983047577ee07d2a9e53faf5a69493943ec3f6a384bdc792deb2/httpx-0.28.1-py3-none-any.whl", hash = "sha256:d909fcccc110f8c7faf814ca82a9a4d816bc5a6dbfea25d6591d6985b8ba59ad", size = 73517, upload-time = "2024-12-06T15:37:21.509Z" },
+]
+
+[[package]]
+name = "idna"
+version = "3.20"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f5/08/8eea9d4b8302028f3abb2c0813953f7aec26d33b7a8960ed760e65ff29fa/idna-3.20.tar.gz", hash = "sha256:a7db850025b95ded1eae8a46181a1a6c56c92c96f0e2b005d9ff8dc0210cab44", size = 216463, upload-time = "2026-09-17T14:11:04.752Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/58/a2/bb081bab032533a855d44de1d56f8e8426114ff1ba5d1f07a438a0a654f8/idna-3.20-py3-none-any.whl", hash = "sha256:ab7ae7122974553370f0bdb919e1a960b2cd1bc1ef0276416d896db81c14582c", size = 69583, upload-time = "2026-09-17T14:11:03.168Z" },
+]
+
+[[package]]
+name = "sumo-bridge"
+version = "1.0.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "eclipse-sumo" },
+    { name = "httpx" },
+    { name = "sumolib" },
+    { name = "traci" },
+    { name = "traffic-engine" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "eclipse-sumo", specifier = ">=1.20" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "sumolib", specifier = ">=1.20" },
+    { name = "traci", specifier = ">=1.20" },
+    { name = "traffic-engine", editable = "../traffic_engine" },
+]
+
+[[package]]
+name = "sumo-data"
+version = "1.27.1"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/73/9d/1c4e7bb11044372fdeafad36a753b2c919b328d280820a14e1ac74f18290/sumo_data-1.27.1-py3-none-any.whl", hash = "sha256:2e547fd20558e07d6004d576eeaf85f4aa061efb4a9bab7675233726364fba61", size = 16189121, upload-time = "2026-06-25T09:50:30.943Z" },
+    { url = "https://files.pythonhosted.org/packages/ea/f9/0ed46d6d8bed8d96f5901907903baea2200196741b579b1b6768396a9f7c/sumo_data-1.27.1-py3-none-macosx_14_0_arm64.whl", hash = "sha256:cc3f71bbeac8dc45a67ef90b023fa8d7ee4bd25c7f62f8006c5c036d545a9527", size = 116182082, upload-time = "2026-06-25T09:50:39.363Z" },
+    { url = "https://files.pythonhosted.org/packages/6c/54/7cfac7fe78b9393ffc0487d799bbeebbdd508147cb84da1c43f19e33e63f/sumo_data-1.27.1-py3-none-win_amd64.whl", hash = "sha256:fa53a3cd34c2f9fd7137d055451b19c44b8972b65dcc15328d2f469647d6d38d", size = 129615571, upload-time = "2026-06-25T09:50:46.708Z" },
+]
+
+[[package]]
+name = "sumolib"
+version = "1.27.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/92/9e/fc02e2202b93ecfa3559afa972a5ac50c644a50c51412bdb52f9f76e279e/sumolib-1.27.1.tar.gz", hash = "sha256:0ceaeeb5c9913d8e38e998263e33702c1ed43829d9f961bb3a591d94fbe87018", size = 142135, upload-time = "2026-06-25T09:50:50.978Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/67/1f/216675079166eec8ae21b22db31e35d524799d26df1eadcc8746053586ba/sumolib-1.27.1-py2.py3-none-any.whl", hash = "sha256:2cc63e75de8db9219ab1a742a4f8870d1d2199881dcc006a0afbcdbb1e463796", size = 236203, upload-time = "2026-06-25T09:50:49.816Z" },
+]
+
+[[package]]
+name = "traci"
+version = "1.27.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "sumolib" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/24/63/3b0b1405396f12d977fbe50fe77196a6f8896143ecd75f85283bfdac42af/traci-1.27.1.tar.gz", hash = "sha256:9f5ccc66e02db316c078a3b010fea1c40510f0cb8434a2155bfe6248e9058787", size = 103403, upload-time = "2026-06-25T09:50:59.876Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/61/26/59f5b3ebdf57efbc45a89d47e95fdbe0d7349cb52e13be1d37722e97413e/traci-1.27.1-py2.py3-none-any.whl", hash = "sha256:b4f4fb1cd145461c318aa62df16cfd48494a46631a8c3b62348b901def670c9e", size = 138897, upload-time = "2026-06-25T09:50:58.734Z" },
+]
+
+[[package]]
+name = "traffic-engine"
+version = "0.3.0"
+source = { editable = "../traffic_engine" }
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8.2" }]
+
+[[package]]
+name = "typing-extensions"
+version = "4.16.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f6/cc/6253133b5bb138fc3306cebfbda2c520f545d36b5be2c7255cc528bb45d6/typing_extensions-4.16.0.tar.gz", hash = "sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5", size = 113555, upload-time = "2026-07-02T08:40:05.92Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl", hash = "sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8", size = 45571, upload-time = "2026-07-02T08:40:04.659Z" },
+]

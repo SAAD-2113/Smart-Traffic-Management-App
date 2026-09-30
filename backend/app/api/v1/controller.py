@@ -55,7 +55,7 @@ async def decisions(
         if info is None:
             continue
         plan, is_default, updated_at = plans[code]
-        out_plans.append(signal_service.plan_out(info.id, code, plan, is_default, updated_at))
+        out_plans.append(signal_service.plan_out(info.id, code, plan, is_default, updated_at, network.intersections[code]))
         decision = await signal_service.latest_valid_decision(db, info.id, code, now)
         if decision is not None:
             out_decisions.append(decision)

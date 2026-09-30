@@ -41,7 +41,7 @@ def plan_from_config(config: SignalPlanConfig) -> SignalPlan:
 
 
 def plan_out(intersection_id: uuid.UUID, code: str, plan: SignalPlan, is_default: bool,
-             updated_at: datetime | None) -> SignalPlanOut:
+             updated_at: datetime | None, node=None) -> SignalPlanOut:
     return SignalPlanOut(
         intersection_id=intersection_id, intersection_code=code, is_default=is_default,
         phases=[
@@ -52,6 +52,7 @@ def plan_out(intersection_id: uuid.UUID, code: str, plan: SignalPlan, is_default
         ],
         min_cycle_s=plan.min_cycle_s, max_cycle_s=plan.max_cycle_s,
         fixed_cycle_s=plan.fixed_cycle_s, lost_time_s=plan.lost_time_s, updated_at=updated_at,
+        approach_bearings={a.name: a.travel_bearing_deg for a in node.approaches} if node is not None else {},
     )
 
 
@@ -74,7 +75,7 @@ async def get_plan(db: AsyncSession, intersection_id: uuid.UUID) -> SignalPlanOu
     if info is None:
         raise not_found("Intersection")
     plan, is_default, updated_at = (await load_plans(db, network, refs))[info.code]
-    return plan_out(info.id, info.code, plan, is_default, updated_at)
+    return plan_out(info.id, info.code, plan, is_default, updated_at, network.intersections[info.code])
 
 
 async def put_plan(db: AsyncSession, actor: User, intersection_id: uuid.UUID, body: SignalPlanIn) -> SignalPlanOut:
@@ -116,7 +117,7 @@ async def put_plan(db: AsyncSession, actor: User, intersection_id: uuid.UUID, bo
     await audit_repo.record(db, "signal.plan_updated", actor_user_id=actor.id, target_type="intersection",
                             target_id=intersection.id, details={"phases": [p.name for p in plan.phases]})
     await db.commit()
-    return plan_out(intersection.id, intersection.code, plan, False, config.updated_at)
+    return plan_out(intersection.id, intersection.code, plan, False, config.updated_at, node)
 
 
 # -- decisions -------------------------------------------------------------------------

@@ -20,6 +20,7 @@ class EmergencyScreen extends StatefulWidget {
 
 class _EmergencyScreenState extends State<EmergencyScreen> {
   bool _busy = false;
+  bool? _syncedFor;
 
   @override
   void initState() {
@@ -68,7 +69,15 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
     final tracking = context.watch<TrackingController>();
     final status = driver.emergency;
     final theme = Theme.of(context);
-    final active = status?.activeEvent != null || tracking.emergencyActive;
+    // While tracking, every upload returns the server's emergency state, so it is the freshest
+    // source (e.g. a manager ended the emergency or revoked the authorization).
+    final active = tracking.isActive ? tracking.emergencyActive : status?.activeEvent != null;
+    if (tracking.isActive && !_busy && active != (status?.activeEvent != null) && _syncedFor != active) {
+      _syncedFor = active;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) driver.refreshEmergency();
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Emergency mode')),

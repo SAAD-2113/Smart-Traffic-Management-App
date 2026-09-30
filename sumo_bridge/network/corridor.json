@@ -1,0 +1,13 @@
+{
+  "comment": "Same placeholder corridor as backend/scripts/seed_intersections.py. Edit to match your intersections.",
+  "speed_mps": 13.89,
+  "arm_length_m": 450,
+  "intersections": [
+    {"code": "I1", "lat": 31.5204, "lon": 74.3300},
+    {"code": "I2", "lat": 31.5204, "lon": 74.3365},
+    {"code": "I3", "lat": 31.5204, "lon": 74.3430},
+    {"code": "I4", "lat": 31.5204, "lon": 74.3495}
+  ],
+  "flows_veh_per_hour": {"main": 500, "side": 150},
+  "emergency_every_s": 300
+}

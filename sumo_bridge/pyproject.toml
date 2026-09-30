@@ -1,0 +1,20 @@
+[project]
+name = "sumo-bridge"
+version = "1.0.0"
+description = "Connects an Eclipse SUMO simulation to the Smart Traffic backend through TraCI"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "traffic-engine",
+    # SUMO itself (binaries + traci/sumolib). If SUMO is installed separately, the bridge also
+    # works with $SUMO_HOME/tools on PYTHONPATH.
+    "eclipse-sumo>=1.20",
+    "traci>=1.20",
+    "sumolib>=1.20",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+traffic-engine = { path = "../traffic_engine", editable = true }

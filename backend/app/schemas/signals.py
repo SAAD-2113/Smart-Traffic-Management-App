@@ -44,6 +44,10 @@ class SignalPlanOut(ApiModel):
     fixed_cycle_s: float
     lost_time_s: float
     updated_at: datetime | None
+    approach_bearings: dict[str, float] = Field(
+        default_factory=dict,
+        description="Direction of travel (degrees) of each approach, so an actuator can map phases to its lanes.",
+    )
 
 
 class SignalOverviewItem(ApiModel):
