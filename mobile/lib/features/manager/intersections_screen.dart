@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/units.dart';
 import '../../core/utils/validators.dart';
+import '../../data/models/control.dart';
 import '../../data/repositories/manager_repository.dart';
 import '../../widgets/common.dart';
+import '../../widgets/signal_widgets.dart';
 import 'intersection_detail_screen.dart';
 import 'live_controller.dart';
 import 'manager_shell.dart';
@@ -56,7 +58,8 @@ class IntersectionsScreen extends StatelessWidget {
                           const SizedBox(height: 8),
                           Wrap(spacing: 8, runSpacing: 6, children: [
                             StatusChip(label: n.status, color: n.isActive ? StatusColors.ok : StatusColors.neutral),
-                            StatusChip(label: n.controllerType, color: StatusColors.info),
+                            if (n.control != null) ModeBadge(n.control!.mode),
+                            StatusChip(label: policyLabel(n.controllerType), color: StatusColors.info, icon: Icons.tune),
                             StatusChip(
                                 label: n.connected ? 'Controller connected' : 'No controller report',
                                 color: n.connected ? StatusColors.ok : StatusColors.neutral,
@@ -104,7 +107,7 @@ class _NewIntersectionScreenState extends State<NewIntersectionScreen> {
   final _radius = TextEditingController(text: '40');
   final _approachRadius = TextEditingController(text: '250');
   final _penetration = TextEditingController(text: '5');
-  String _controller = 'FIXED';
+  String _controller = 'AUTO';
   bool _fourApproaches = true;
   bool _busy = false;
 
@@ -202,14 +205,20 @@ class _NewIntersectionScreenState extends State<NewIntersectionScreen> {
             validator: (v) => Validators.number(v, min: 0.1, max: 100),
           ),
           const SizedBox(height: 12),
+          const Text('Signal control policy'),
+          const SizedBox(height: 6),
           SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'FIXED', label: Text('Fixed time'), icon: Icon(Icons.timer)),
-              ButtonSegment(value: 'ADAPTIVE', label: Text('Adaptive'), icon: Icon(Icons.auto_graph)),
+              ButtonSegment(value: 'AUTO', label: Text('Automatic'), icon: Icon(Icons.auto_mode)),
+              ButtonSegment(value: 'FIXED', label: Text('Fixed only'), icon: Icon(Icons.schedule)),
+              ButtonSegment(value: 'ADAPTIVE', label: Text('Adaptive only'), icon: Icon(Icons.trending_up)),
             ],
+            showSelectedIcon: false,
             selected: {_controller},
             onSelectionChanged: (s) => setState(() => _controller = s.first),
           ),
+          const SizedBox(height: 4),
+          Text(policyDescription(_controller), style: Theme.of(context).textTheme.bodySmall),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Add four standard approaches'),

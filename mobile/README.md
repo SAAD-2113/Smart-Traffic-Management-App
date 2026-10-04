@@ -5,10 +5,19 @@ One app, two roles. After login the backend's role decides which app the user se
 - **Driver (END_USER):** vehicle setup and Vehicle ID, Home (start/stop tracking, GPS quality, speed,
   upload status and offline queue), Trips, Emergency (authorized emergency
   vehicles only: request authorization, press-and-hold + confirm to activate), Profile.
-- **Manager (MANAGER/ADMIN):** Dashboard, Live map, Vehicles, Intersections (observed / calculated /
-  estimated metrics, approaches, data quality, signal and decision), Traffic analysis, Emergency
-  (authorizations and events), Signals (plans and advisory decisions), History, Settings (demo
-  simulation, server, theme). Live updates come over the WebSocket, with polling as fallback.
+- **Manager (MANAGER/ADMIN):**
+  - **Dashboard ("Traffic Control Center").** How many intersections are fixed-time, adaptive or
+    in emergency priority. Each intersection gets a control card with the mode, the reason, the
+    traffic behind it and the green/yellow/red timing against the fixed plan, plus the mode-change
+    log.
+  - **Live map.** Signal lights at every intersection: a head per approach on the side its
+    traffic arrives from, a hub in the mode colour, and a countdown.
+  - **Other screens.** Vehicles, Intersections (observed / calculated / estimated metrics,
+    approaches, data quality, control policy AUTO / FIXED / ADAPTIVE), Traffic analysis,
+    Emergency (authorizations and events), Signal control (plans, modes, timing), History,
+    Settings (demo simulation with rush hour, server, theme).
+  - Live updates come over the WebSocket, with polling as the fallback. The app only displays the
+    server's control status; it never works out the mode or the timing itself.
 
 The Android build (`com.fyp.smart_traffic`, Android 7.0+) contains both roles; the web build is used as
 a desktop manager dashboard.
@@ -39,7 +48,9 @@ lib/
   services/                       location (geolocator foreground service), packet builder,
                                   upload policy (batching, backoff, backfill window), tracking controller
   features/auth|driver|manager    screens and their controllers (provider / ChangeNotifier)
-  widgets/                        shared widgets and charts (fl_chart)
+  widgets/                        shared widgets and charts (fl_chart); brand.dart (header, stat
+                                  tiles, buttons), signal_widgets.dart (mode badge, traffic light,
+                                  control card, timing diagram, map signal marker)
 ```
 
 ## Tracking behaviour

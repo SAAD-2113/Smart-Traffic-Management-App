@@ -1,3 +1,4 @@
+import 'control.dart';
 import 'json.dart';
 
 class ObservedStats {
@@ -139,6 +140,8 @@ class IntersectionTraffic {
   bool get connected => j['connected'] as bool? ?? false;
   SignalDecisionInfo? get decision => j['decision'] == null ? null : SignalDecisionInfo(j['decision'] as Json);
   DateTime? get computedAt => parseTime(j['computedAt']);
+  ControlStatus? get control => j['control'] == null ? null : ControlStatus(j['control'] as Json);
+  SignalDisplay? get displaySignal => j['displaySignal'] == null ? null : SignalDisplay(j['displaySignal'] as Json);
 
   bool get isActive => status == 'ACTIVE';
   bool get isCongested => congestionLevel == 'HIGH' || congestionLevel == 'SEVERE';
@@ -174,6 +177,9 @@ class TrafficOverview {
   int get congestedIntersections => toInt(j['congestedIntersections']);
   List<String> get congestedCodes => ((j['congestedIntersectionCodes'] as List?) ?? const []).cast<String>();
   int get pendingAuthorizations => toInt(j['pendingAuthorizations']);
+  int get fixedTimeIntersections => toInt(j['fixedTimeIntersections']);
+  int get adaptiveIntersections => toInt(j['adaptiveIntersections']);
+  int get emergencyPriorityIntersections => toInt(j['emergencyPriorityIntersections']);
   SystemStatus get system => SystemStatus(j['system'] as Json);
 }
 

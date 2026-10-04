@@ -12,6 +12,7 @@ import '../../data/models/telemetry.dart';
 import '../../data/models/traffic.dart';
 import '../../data/models/vehicle.dart';
 import '../../widgets/common.dart';
+import '../../widgets/signal_widgets.dart';
 import 'intersection_detail_screen.dart';
 import 'live_controller.dart';
 import 'manager_shell.dart';
@@ -32,6 +33,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
   final _map = MapController();
   bool _showVehicles = true;
   bool _showZones = true;
+  bool _showSignals = true;
   bool _emergencyOnly = false;
   double _zoom = 15;
   bool _fitted = false;
@@ -89,6 +91,8 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
             initialZoom: 15,
             minZoom: 3,
             maxZoom: 19,
+            // North stays up, so each signal head sits on the side its traffic arrives from.
+            interactionOptions: const InteractionOptions(flags: InteractiveFlag.all & ~InteractiveFlag.rotate),
             onPositionChanged: (camera, _) {
               if ((camera.zoom - _zoom).abs() > 0.25) setState(() => _zoom = camera.zoom);
             },
@@ -125,23 +129,34 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
                       pattern: StrokePattern.dashed(segments: const [10, 6]),
                     ),
             ]),
+            // Order: ordinary vehicles, then the signals on top of them, then emergency vehicles.
+            MarkerLayer(markers: [
+              for (final v in visibleVehicles)
+                if (!v.emergencyActive) _vehicleMarker(context, v),
+            ]),
             MarkerLayer(markers: [
               for (final n in nodes)
-                Marker(
-                  point: LatLng(n.latitude, n.longitude),
-                  width: 64,
-                  height: 64,
-                  child: GestureDetector(onTap: () => _intersectionSheet(context, n), child: _IntersectionMarker(n)),
-                ),
+                if (_showSignals)
+                  Marker(
+                    point: LatLng(n.latitude, n.longitude),
+                    width: IntersectionSignalMarker.baseSize * _signalScale,
+                    height: (IntersectionSignalMarker.baseSize + 18) * _signalScale,
+                    child: GestureDetector(
+                      onTap: () => _intersectionSheet(context, n),
+                      child: IntersectionSignalMarker(item: n, serverNow: () => live.serverNow, scale: _signalScale),
+                    ),
+                  )
+                else
+                  Marker(
+                    point: LatLng(n.latitude, n.longitude),
+                    width: 64,
+                    height: 64,
+                    child: GestureDetector(onTap: () => _intersectionSheet(context, n), child: _IntersectionMarker(n)),
+                  ),
             ]),
             MarkerLayer(markers: [
               for (final v in visibleVehicles)
-                Marker(
-                  point: LatLng(v.live!.lat, v.live!.lon),
-                  width: v.emergencyActive ? 44 : 30,
-                  height: v.emergencyActive ? 44 : 30,
-                  child: GestureDetector(onTap: () => _vehicleSheet(context, v), child: VehicleMarker(v)),
-                ),
+                if (v.emergencyActive) _vehicleMarker(context, v),
             ]),
             const RichAttributionWidget(attributions: [TextSourceAttribution('OpenStreetMap contributors')]),
           ],
@@ -153,6 +168,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(children: [
+              _chip('Signals', _showSignals, (v) => setState(() => _showSignals = v)),
               _chip('Vehicles', _showVehicles, (v) => setState(() => _showVehicles = v)),
               _chip('Emergency only', _emergencyOnly, (v) => setState(() => _emergencyOnly = v)),
               _chip('Zones', _showZones, (v) => setState(() => _showZones = v)),
@@ -160,6 +176,8 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
             ]),
           ),
         ),
+        if (_showSignals && nodes.isNotEmpty)
+          Positioned(left: 8, bottom: crowded ? 72 : 28, child: const _SignalLegend()),
         if (crowded)
           Positioned(
             bottom: 24,
@@ -175,6 +193,22 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
             ),
           ),
       ]),
+    );
+  }
+
+  /// Signal markers shrink when zoomed out so the corridor stays readable.
+  double get _signalScale => _zoom >= 16 ? 1.0 : (_zoom >= 15 ? 0.85 : (_zoom >= 14 ? 0.7 : 0.55));
+
+  /// Vehicle markers also shrink when zoomed out, so they do not hide the signal heads.
+  double get _vehicleSize => _zoom >= 17 ? 30 : (_zoom >= 16 ? 26 : 21);
+
+  Marker _vehicleMarker(BuildContext context, LiveVehicle v) {
+    final size = v.emergencyActive ? 44.0 : _vehicleSize;
+    return Marker(
+      point: LatLng(v.live!.lat, v.live!.lon),
+      width: size,
+      height: size,
+      child: GestureDetector(onTap: () => _vehicleSheet(context, v), child: VehicleMarker(v, size: size)),
     );
   }
 
@@ -226,38 +260,41 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
   }
 
   void _intersectionSheet(BuildContext context, IntersectionTraffic n) {
+    final live = context.read<LiveController>();
     showModalBottomSheet(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Text(n.code, style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(width: 8),
-              CongestionBadge(n.congestionLevel, compact: true),
-              const SizedBox(width: 6),
-              DataQualityChip(n.dataQuality),
-            ]),
-            Text(n.name),
-            const SizedBox(height: 8),
-            InfoRow('Vehicles observed', '${n.observed.vehicleCount} (${n.observed.stoppedCount} stopped)'),
-            InfoRow('Estimated vehicles', Units.number(n.estimated.vehicleCount, decimals: 0)),
-            InfoRow('Average speed', Units.speed(n.observed.avgSpeedMps)),
-            InfoRow('Signal', n.signal == null ? 'No report' : '${n.signal!.phaseName} · ${n.signal!.state}'),
-            const SizedBox(height: 8),
-            FilledButton.tonal(
-              onPressed: () {
-                Navigator.pop(sheetContext);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => IntersectionDetailScreen(intersectionId: n.id)));
-              },
-              child: const Text('Intersection details'),
-            ),
-          ]),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.85),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Consumer<LiveController>(builder: (context, live, _) {
+              final current = live.intersections.where((i) => i.id == n.id).firstOrNull ?? n;
+              return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Row(children: [
+                  CongestionBadge(current.congestionLevel),
+                  const SizedBox(width: 6),
+                  DataQualityChip(current.dataQuality),
+                ]),
+                const SizedBox(height: 10),
+                ControlCard(item: current, serverNow: () => live.serverNow),
+                const SizedBox(height: 10),
+                FilledButton.tonal(
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => IntersectionDetailScreen(intersectionId: n.id)));
+                  },
+                  child: const Text('Intersection details'),
+                ),
+              ]);
+            }),
+          ),
         ),
       ),
     );
+    live.refresh();
   }
 
   void _legend(BuildContext context) {
@@ -270,7 +307,14 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
           _legendRow(const Icon(Icons.navigation, color: StatusColors.simulated), 'Simulated vehicle'),
           _legendRow(const Icon(Icons.emergency, color: StatusColors.emergency), 'Emergency vehicle (active)'),
           _legendRow(const Icon(Icons.circle, color: StatusColors.neutral), 'No recent data (stale)'),
-          _legendRow(const Icon(Icons.traffic, color: StatusColors.ok), 'Intersection; ring = approach zone'),
+          _legendRow(const Icon(Icons.traffic, color: StatusColors.ok), 'Intersection; ring = approach zone, coloured by congestion'),
+          _legendRow(const _MiniHead(SignalColors.green), 'Signal head, on the side its traffic arrives from'),
+          _legendRow(const Text('12 s', style: TextStyle(fontWeight: FontWeight.w800)), 'Time left in the current light'),
+          const SizedBox(height: 4),
+          const Wrap(spacing: 6, runSpacing: 6, children: [
+            ModeBadge('FIXED_TIME'), ModeBadge('ADAPTIVE'), ModeBadge('EMERGENCY_PRIORITY'),
+          ]),
+          const SizedBox(height: 8),
           const SizedBox(height: 8),
           Wrap(spacing: 6, runSpacing: 6, children: [
             for (final l in ['LOW', 'MODERATE', 'HIGH', 'SEVERE', 'UNKNOWN']) CongestionBadge(l, compact: true),
@@ -314,8 +358,9 @@ class _IntersectionMarker extends StatelessWidget {
 
 /// Vehicle marker: arrow rotated to the heading; emergency vehicles are larger, red and ringed.
 class VehicleMarker extends StatelessWidget {
-  const VehicleMarker(this.v, {super.key});
+  const VehicleMarker(this.v, {super.key, this.size = 30});
   final LiveVehicle v;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -341,8 +386,58 @@ class VehicleMarker extends StatelessWidget {
           boxShadow: const [BoxShadow(blurRadius: 3, color: Colors.black26)],
         ),
         child: heading == null
-            ? Icon(Icons.circle, color: color, size: 16)
-            : Transform.rotate(angle: heading * math.pi / 180, child: Icon(Icons.navigation, color: color, size: 22)),
+            ? Icon(Icons.circle, color: color, size: size * 0.53)
+            : Transform.rotate(
+                angle: heading * math.pi / 180, child: Icon(Icons.navigation, color: color, size: size * 0.73)),
+      ),
+    );
+  }
+}
+
+
+class _MiniHead extends StatelessWidget {
+  const _MiniHead(this.color);
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 22,
+        height: 22,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(6)),
+        child: DecoratedBox(decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+      );
+}
+
+/// Always-visible key for the signal markers: the three modes.
+class _SignalLegend extends StatelessWidget {
+  const _SignalLegend();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    Widget row(String mode, String label) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 18,
+              height: 18,
+              decoration: BoxDecoration(gradient: ModeColors.gradient(mode), shape: BoxShape.circle),
+              child: Icon(ModeColors.icon(mode), size: 11, color: Colors.white),
+            ),
+            const SizedBox(width: 6),
+            Text(label, style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600)),
+          ]),
+        );
+    return Card(
+      elevation: 3,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 8, 12, 8),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          row('FIXED_TIME', 'Fixed-time'),
+          row('ADAPTIVE', 'Adaptive'),
+          row('EMERGENCY_PRIORITY', 'Emergency'),
+        ]),
       ),
     );
   }

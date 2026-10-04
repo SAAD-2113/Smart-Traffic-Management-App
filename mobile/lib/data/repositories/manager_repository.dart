@@ -1,4 +1,5 @@
 import '../../core/network/api_client.dart';
+import '../models/control.dart';
 import '../models/emergency.dart';
 import '../models/json.dart';
 import '../models/signals.dart';
@@ -110,4 +111,17 @@ class ManagerRepository {
       await _api.post('/demo/start', body: {'vehicles': vehicles, 'includeEmergencyVehicle': ambulance}) as Json);
 
   Future<DemoStatus> stopDemo() async => DemoStatus(await _api.post('/demo/stop') as Json);
+
+  Future<DemoStatus> startRushHour(String intersectionCode, {int durationS = 480}) async => DemoStatus(
+      await _api.post('/demo/surge', body: {'intersectionCode': intersectionCode, 'durationS': durationS}) as Json);
+
+  Future<DemoStatus> stopRushHour() async => DemoStatus(await _api.post('/demo/surge/stop') as Json);
+
+  // Signal-control modes
+  Future<ControlConfig> controlConfig() async => ControlConfig(await _api.get('/signals/control-config') as Json);
+
+  Future<List<ModeEvent>> modeEvents({String? intersectionId, int limit = 30}) async => jsonList(
+          await _api.get('/signals/mode-events', query: {'limit': '$limit', 'intersectionId': ?intersectionId}))
+      .map(ModeEvent.new)
+      .toList();
 }

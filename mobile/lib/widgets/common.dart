@@ -15,21 +15,23 @@ class StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ink = filled ? _onFilled(color) : StatusColors.readable(color, Theme.of(context).brightness);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: filled ? color : color.withValues(alpha: 0.12),
+        color: filled ? color : color.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
+        border: Border.all(color: color.withValues(alpha: filled ? 0.9 : 0.45)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        if (icon != null) ...[Icon(icon, size: 14, color: filled ? Colors.white : color), const SizedBox(width: 4)],
-        Text(label,
-            style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w600, color: filled ? Colors.white : color, letterSpacing: 0.2)),
+        if (icon != null) ...[Icon(icon, size: 14, color: ink), const SizedBox(width: 4)],
+        Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: ink, letterSpacing: 0.2)),
       ]),
     );
   }
+
+  /// Dark ink on light fills (yellow, light orange), white on dark fills.
+  static Color _onFilled(Color fill) => fill.computeLuminance() > 0.4 ? const Color(0xFF1F1500) : Colors.white;
 }
 
 class CongestionBadge extends StatelessWidget {
@@ -383,11 +385,19 @@ class Ticker extends StatefulWidget {
 }
 
 class _TickerState extends State<Ticker> {
-  late final Timer _timer = Timer.periodic(widget.period, (_) => setState(() {}));
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(widget.period, (_) {
+      if (mounted) setState(() {});
+    });
+  }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 

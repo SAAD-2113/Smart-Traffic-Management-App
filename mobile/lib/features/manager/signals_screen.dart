@@ -3,9 +3,12 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/units.dart';
+import '../../data/models/control.dart';
 import '../../data/models/signals.dart';
 import '../../data/repositories/manager_repository.dart';
 import '../../widgets/common.dart';
+import '../../widgets/signal_widgets.dart';
+import 'live_controller.dart';
 import 'manager_shell.dart';
 import 'signal_plan_screen.dart';
 
@@ -45,9 +48,9 @@ class _SignalsScreenState extends State<SignalsScreen> {
               const MessageBanner(
                 icon: Icons.shield_outlined,
                 color: StatusColors.info,
-                text: 'Decisions are advisory and expire after 15 s. Controllers keep their own minimum green, '
-                    'yellow and all-red times and fall back to their fixed plan when no valid decision exists. '
-                    'Emergency priority is a simulation/prototype feature.',
+                text: 'Automatic intersections run the fixed-time plan in normal traffic and switch to adaptive '
+                    'timing when congestion builds up. Decisions are advisory and expire after 15 s; controllers keep '
+                    'their own minimum green, yellow and all-red times. Emergency priority is a simulation/prototype feature.',
               ),
               const SizedBox(height: 12),
               for (final item in items) ...[_SignalTile(item: item, onChanged: _reload), const SizedBox(height: 10)],
@@ -66,95 +69,82 @@ class _SignalTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = item.state;
-    final d = item.decision;
-    final plan = item.plan;
-    final greens = d == null
-        ? [for (final p in plan.phases) PhaseGreenView(p.name, p.fixedGreenS)]
-        : [for (final g in d.phaseGreens) PhaseGreenView(g.phase, g.greenS)];
-    final totalGreen = greens.fold<double>(0, (sum, g) => sum + g.greenS);
+    final theme = Theme.of(context);
+    final live = context.watch<LiveController>();
+    // Live parts (mode, lights) from the WebSocket feed; plan and connection from this screen's load.
+    final current = live.intersections.where((i) => i.id == item.intersectionId).firstOrNull;
+    final control = current?.control ?? item.control;
+    final display = current?.displaySignal ?? item.displaySignal;
+    final muted = theme.colorScheme.onSurfaceVariant;
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
         onTap: () async {
-          await Navigator.push(context, MaterialPageRoute(builder: (_) => SignalPlanScreen(intersectionId: item.intersectionId, code: item.code)));
+          await Navigator.push(
+              context, MaterialPageRoute(builder: (_) => SignalPlanScreen(intersectionId: item.intersectionId, code: item.code)));
           await onChanged();
         },
-        child: Padding(
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(left: BorderSide(color: control == null ? StatusColors.neutral : ModeColors.of(control.mode), width: 4)),
+          ),
           padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
-              Text(item.code, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-              const SizedBox(width: 8),
-              Expanded(child: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis)),
-              StatusChip(label: item.controllerType, color: StatusColors.info),
-            ]),
-            const SizedBox(height: 8),
-            Row(children: [
-              Icon(Icons.circle, size: 18, color: s == null ? StatusColors.neutral : StatusColors.light(s.state)),
-              const SizedBox(width: 8),
+              TrafficLight(state: display?.state ?? 'OFF', lampSize: 11),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(s == null
-                    ? 'No controller has reported a state'
-                    : '${s.phaseName} · ${s.state.replaceAll('_', ' ')}${s.remainingS != null ? ' · ${s.remainingS!.toStringAsFixed(0)} s' : ''}'
-                        ' · ${s.mode.replaceAll('_', ' ').toLowerCase()} · ${s.source.toLowerCase()}'),
+                child: SignalTitle(code: item.code, name: item.name, display: display, serverNow: () => live.serverNow),
               ),
-              StatusChip(
-                label: item.connected ? 'Connected' : 'Not reporting',
-                color: item.connected ? StatusColors.ok : StatusColors.neutral,
-              ),
+              if (control != null) ModeBadge(control.mode),
             ]),
             const SizedBox(height: 10),
-            Text(d == null ? 'Timing: fixed plan (cycle ${plan.fixedCycleS.toStringAsFixed(0)} s)' : 'Timing: ${d.algorithmLabel} (cycle ${d.cycleS.toStringAsFixed(0)} s)',
-                style: const TextStyle(fontWeight: FontWeight.w600)),
+            Wrap(spacing: 8, runSpacing: 6, children: [
+              StatusChip(label: 'Policy: ${policyLabel(item.controllerType)}', color: StatusColors.info, icon: Icons.tune),
+              StatusChip(
+                label: item.connected
+                    ? 'Controller connected'
+                    : (display?.virtual ?? false)
+                        ? 'Virtual controller'
+                        : 'Not reporting',
+                color: item.connected ? StatusColors.ok : StatusColors.neutral,
+                icon: Icons.settings_input_antenna,
+              ),
+              if (item.plan.isDefault) const StatusChip(label: 'Default plan', color: StatusColors.neutral),
+            ]),
+            if (control != null) ...[
+              const SizedBox(height: 10),
+              Text(control.headline, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+              Text(control.detail, maxLines: 3, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
+              const SizedBox(height: 12),
+              SignalTimingDiagram(
+                timings: control.activeTiming,
+                cycleS: control.activeCycleS,
+                reference: control.timingChanged ? control.fixedTiming : null,
+                referenceCycleS: control.timingChanged ? control.fixedCycleS : null,
+                highlightPhase: control.priorityPhase ?? display?.phaseName,
+              ),
+            ] else
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text('Fixed plan: cycle ${item.plan.fixedCycleS.toStringAsFixed(0)} s',
+                    style: theme.textTheme.bodySmall),
+              ),
             const SizedBox(height: 6),
-            _GreenSplit(greens: greens, priority: d?.priorityPhase, total: totalGreen),
-            if (d != null) ...[
-              const SizedBox(height: 6),
-              Text(d.reason, maxLines: 3, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
-              Text('Valid until ${Units.clock(d.validUntil)}', style: Theme.of(context).textTheme.bodySmall),
-            ],
+            Row(children: [
+              Expanded(
+                child: Text(
+                    item.decision == null
+                        ? 'No decision is sent; the controller runs its fixed plan.'
+                        : 'Decision valid until ${Units.clock(item.decision!.validUntil)} (advisory)',
+                    style: theme.textTheme.bodySmall?.copyWith(color: muted)),
+              ),
+              Text('Edit plan', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary)),
+              Icon(Icons.chevron_right, size: 18, color: theme.colorScheme.primary),
+            ]),
           ]),
         ),
       ),
-    );
-  }
-}
-
-class PhaseGreenView {
-  PhaseGreenView(this.phase, this.greenS);
-  final String phase;
-  final double greenS;
-}
-
-/// Horizontal bar showing how green time is split between phases (labels, not colour, carry identity).
-class _GreenSplit extends StatelessWidget {
-  const _GreenSplit({required this.greens, required this.priority, required this.total});
-  final List<PhaseGreenView> greens;
-  final String? priority;
-  final double total;
-
-  @override
-  Widget build(BuildContext context) {
-    if (greens.isEmpty || total <= 0) return const SizedBox.shrink();
-    final base = ChartColors.primary(context);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: Row(children: [
-        for (var i = 0; i < greens.length; i++)
-          Expanded(
-            flex: (greens[i].greenS * 10).round().clamp(1, 100000),
-            child: Container(
-              height: 28,
-              margin: EdgeInsets.only(right: i == greens.length - 1 ? 0 : 2),
-              color: greens[i].phase == priority ? StatusColors.emergency : base.withValues(alpha: i.isEven ? 0.9 : 0.55),
-              alignment: Alignment.center,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text('${greens[i].phase} ${greens[i].greenS.toStringAsFixed(0)} s',
-                  maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
-            ),
-          ),
-      ]),
     );
   }
 }

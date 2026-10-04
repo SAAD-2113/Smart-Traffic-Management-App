@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/units.dart';
 import '../../services/location_service.dart';
 import '../../services/tracking_controller.dart';
+import '../../widgets/brand.dart';
 import '../../widgets/common.dart';
 import 'driver_controller.dart';
 
@@ -44,9 +45,7 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
           if (!driver.phoneLinked) _LinkPhoneBanner(otherPhone: driver.otherPhoneLinked),
-          _TrackingHeader(tracking: tracking),
-          const SizedBox(height: 12),
-          _SpeedCard(tracking: tracking),
+          _TrackingHero(tracking: tracking),
           const SizedBox(height: 12),
           GridView(
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -189,70 +188,77 @@ class _LinkPhoneBanner extends StatelessWidget {
   }
 }
 
-class _TrackingHeader extends StatelessWidget {
-  const _TrackingHeader({required this.tracking});
+/// Tracking status and speed on a gradient card: green-teal while tracking, navy when off.
+class _TrackingHero extends StatelessWidget {
+  const _TrackingHero({required this.tracking});
   final TrackingController tracking;
+
+  static const _activeGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF065F46), Color(0xFF0F766E), Color(0xFF0E7490)],
+  );
 
   @override
   Widget build(BuildContext context) {
     final active = tracking.isActive;
-    final color = active ? StatusColors.ok : StatusColors.neutral;
     final session = tracking.session;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(children: [
+    final speed = active ? tracking.speedMps : null;
+    final status = switch (tracking.phase) {
+      TrackingPhase.active => 'Tracking active',
+      TrackingPhase.starting => 'Starting…',
+      TrackingPhase.stopping => 'Stopping…',
+      TrackingPhase.idle => 'Tracking off',
+    };
+    return Container(
+      decoration: BoxDecoration(
+        gradient: active ? _activeGradient : Brand.hero,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [BoxShadow(color: Brand.navy.withValues(alpha: 0.25), blurRadius: 16, offset: const Offset(0, 6))],
+      ),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
           Container(
-            width: 14,
-            height: 14,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: active ? SignalColors.green : Colors.white54,
+              shape: BoxShape.circle,
+              boxShadow: active ? [BoxShadow(color: SignalColors.green.withValues(alpha: 0.9), blurRadius: 8)] : null,
+            ),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(
-                switch (tracking.phase) {
-                  TrackingPhase.active => 'Tracking active',
-                  TrackingPhase.starting => 'Starting…',
-                  TrackingPhase.stopping => 'Stopping…',
-                  TrackingPhase.idle => 'Tracking off',
-                },
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+          const SizedBox(width: 10),
+          Text(status, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+          const Spacer(),
+          if (session != null)
+            Ticker(
+              builder: (_) => Text(
+                Units.duration(DateTime.now().difference(session.startedAt).inSeconds.toDouble()),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontWeight: FontWeight.w700),
               ),
-              if (session != null)
-                Ticker(
-                  builder: (_) => Text(
-                      'Since ${Units.clock(session.startedAt)} · ${Units.duration(DateTime.now().difference(session.startedAt).inSeconds.toDouble())}'),
-                ),
-            ]),
+            ),
+        ]),
+        if (session != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 22, top: 2),
+            child: Text('Since ${Units.clock(session.startedAt)}',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13)),
           ),
-        ]),
-      ),
-    );
-  }
-}
-
-class _SpeedCard extends StatelessWidget {
-  const _SpeedCard({required this.tracking});
-  final TrackingController tracking;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final speed = tracking.isActive ? tracking.speedMps : null;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(children: [
-          Text('Speed', style: theme.textTheme.titleSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-          Row(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
+        const SizedBox(height: 14),
+        Center(
+          child: Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
             Text(speed == null ? '—' : Units.speedValue(speed),
-                style: theme.textTheme.displayLarge?.copyWith(fontWeight: FontWeight.w800)),
+                style: const TextStyle(color: Colors.white, fontSize: 64, fontWeight: FontWeight.w800, height: 1.0)),
             const SizedBox(width: 8),
-            Text('km/h', style: theme.textTheme.titleLarge),
+            Text('km/h', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 20, fontWeight: FontWeight.w600)),
           ]),
-        ]),
-      ),
+        ),
+        Center(
+          child: Text(active ? 'Current speed' : 'Start tracking to share your position with the traffic system',
+              textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withValues(alpha: 0.75), fontSize: 13)),
+        ),
+      ]),
     );
   }
 }
@@ -266,26 +272,22 @@ class _StartStopButton extends StatelessWidget {
     final tracking = context.watch<TrackingController>();
     final driver = context.read<DriverController>();
     if (tracking.isActive || tracking.phase == TrackingPhase.stopping) {
-      return SizedBox(
+      return GradientButton(
+        label: 'Stop tracking',
+        icon: Icons.stop_circle_outlined,
         height: 64,
-        child: FilledButton.icon(
-          style: FilledButton.styleFrom(backgroundColor: StatusColors.danger),
-          onPressed: tracking.isBusy ? null : tracking.stop,
-          icon: const Icon(Icons.stop_circle_outlined, size: 28),
-          label: const Text('Stop tracking', style: TextStyle(fontSize: 18)),
-        ),
+        busy: tracking.phase == TrackingPhase.stopping,
+        gradient: const LinearGradient(colors: [Color(0xFFB91C1C), Color(0xFFEF4444)]),
+        onPressed: tracking.isBusy ? null : tracking.stop,
       );
     }
-    return SizedBox(
+    return GradientButton(
+      label: 'Start tracking',
+      icon: Icons.play_circle_outline,
       height: 64,
-      child: FilledButton.icon(
-        style: FilledButton.styleFrom(backgroundColor: StatusColors.ok),
-        onPressed: !enabled || tracking.isBusy ? null : () => tracking.start(driver.selected!),
-        icon: tracking.phase == TrackingPhase.starting
-            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
-            : const Icon(Icons.play_circle_outline, size: 28),
-        label: const Text('Start tracking', style: TextStyle(fontSize: 18)),
-      ),
+      busy: tracking.phase == TrackingPhase.starting,
+      gradient: const LinearGradient(colors: [Color(0xFF047857), Color(0xFF10B981)]),
+      onPressed: !enabled || tracking.isBusy ? null : () => tracking.start(driver.selected!),
     );
   }
 }

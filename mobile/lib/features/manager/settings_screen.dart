@@ -130,11 +130,73 @@ class _DemoCard extends StatefulWidget {
 }
 
 class _DemoCardState extends State<_DemoCard> {
+  /// Simulated rush hour: sends most simulated trips through one intersection so congestion
+  /// builds up there and the engine switches it from fixed-time to adaptive.
+  Widget _rushHour(BuildContext context, DemoStatus s) {
+    final theme = Theme.of(context);
+    final repo = context.read<ManagerRepository>();
+    final codes = context.read<LiveController>().intersections.where((i) => i.isActive).map((i) => i.code).toList();
+    final selected = _surgeCode ?? (codes.length > 1 ? codes[1] : (codes.isEmpty ? null : codes.first));
+    final active = s.surgeIntersectionCode;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: ModeColors.adaptive.withValues(alpha: theme.brightness == Brightness.dark ? 0.14 : 0.06),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: ModeColors.adaptive.withValues(alpha: 0.3)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.traffic, color: ModeColors.adaptive),
+          const SizedBox(width: 8),
+          Text('Simulate rush hour', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
+        ]),
+        const SizedBox(height: 4),
+        Text('Sends most simulated trips through one intersection for 8 minutes. Congestion builds up over a few '
+            'minutes; when it stays high the intersection switches from fixed-time to adaptive timing, and back once it '
+            'clears. Works best with 50 or more simulated vehicles.',
+            style: theme.textTheme.bodySmall),
+        const SizedBox(height: 10),
+        if (active != null)
+          Row(children: [
+            Expanded(
+              child: Text('Rush hour at $active · ${(s.surgeRemainingS / 60).ceil()} min left',
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+            ),
+            TextButton(
+              onPressed: _busy ? null : () => _run(repo.stopRushHour, 'Rush hour stopped.'),
+              child: const Text('Stop'),
+            ),
+          ])
+        else if (codes.isNotEmpty)
+          Row(children: [
+            DropdownButton<String>(
+              value: selected,
+              items: [for (final c in codes) DropdownMenuItem(value: c, child: Text(c))],
+              onChanged: (v) => setState(() => _surgeCode = v),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(backgroundColor: ModeColors.adaptive, minimumSize: const Size(64, 44)),
+                onPressed: _busy || selected == null
+                    ? null
+                    : () => _run(() => repo.startRushHour(selected), 'Rush hour started at $selected (simulated).'),
+                icon: const Icon(Icons.play_arrow),
+                label: const Text('Start rush hour'),
+              ),
+            ),
+          ]),
+      ]),
+    );
+  }
+
   DemoStatus? _status;
   Object? _error;
-  double _vehicles = 30;
+  double _vehicles = 50;
   bool _ambulance = true;
   bool _busy = false;
+  String? _surgeCode;
 
   @override
   void initState() {
@@ -212,6 +274,8 @@ class _DemoCardState extends State<_DemoCard> {
                         label: const Text('Start simulation'),
                       ),
                     ] else ...[
+                      const SizedBox(height: 12),
+                      _rushHour(context, s),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
                         onPressed: _busy ? null : () => _run(repo.stopDemo, 'Simulation stopped.'),

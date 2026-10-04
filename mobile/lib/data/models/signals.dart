@@ -1,3 +1,4 @@
+import 'control.dart';
 import 'json.dart';
 import 'traffic.dart';
 
@@ -73,6 +74,8 @@ class SignalOverviewItem {
   SignalPlanConfig get plan => SignalPlanConfig(j['plan'] as Json);
   SignalDecisionInfo? get decision => j['decision'] == null ? null : SignalDecisionInfo(j['decision'] as Json);
   SignalStateInfo? get state => j['state'] == null ? null : SignalStateInfo(j['state'] as Json);
+  ControlStatus? get control => j['control'] == null ? null : ControlStatus(j['control'] as Json);
+  SignalDisplay? get displaySignal => j['displaySignal'] == null ? null : SignalDisplay(j['displaySignal'] as Json);
 }
 
 class IntersectionConfig {
@@ -101,4 +104,6 @@ class DemoStatus {
   int get activeVehicles => toInt(j['activeVehicles']);
   bool get emergencyActive => j['emergencyActive'] as bool;
   double get simulatedSeconds => toDouble(j['simulatedSeconds']) ?? 0;
+  String? get surgeIntersectionCode => j['surgeIntersectionCode'] as String?;
+  double get surgeRemainingS => toDouble(j['surgeRemainingS']) ?? 0;
 }

@@ -6,6 +6,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
+import '../../data/models/control.dart';
 import '../../data/models/emergency.dart';
 import '../../data/models/json.dart';
 import '../../data/models/telemetry.dart';
@@ -16,7 +17,7 @@ enum LiveConnection { connecting, live, polling, offline }
 
 class LiveEvent {
   LiveEvent(this.type, this.data);
-  final String type; // EMERGENCY_STARTED, EMERGENCY_ENDED, AUTHORIZATION_REQUESTED
+  final String type; // EMERGENCY_STARTED, EMERGENCY_ENDED, AUTHORIZATION_REQUESTED, MODE_CHANGED
   final Json data;
 }
 
@@ -49,6 +50,15 @@ class LiveController extends ChangeNotifier {
   String? error;
   bool includeSimulated = true;
 
+  /// Recent fixed-time / adaptive / emergency mode changes, newest first.
+  List<ModeEvent> modeEvents = [];
+  ControlConfig? controlConfig;
+
+  /// Server clock minus phone clock, so signal countdowns are right even if the phone's
+  /// clock is off.
+  Duration _serverOffset = Duration.zero;
+  DateTime get serverNow => DateTime.now().toUtc().add(_serverOffset);
+
   WebSocketChannel? _channel;
   StreamSubscription? _sub;
   Timer? _pollTimer;
@@ -70,7 +80,23 @@ class LiveController extends ChangeNotifier {
     if (_running) return;
     _running = true;
     await refresh(); // show data immediately, before the first push
+    unawaited(_loadControl());
     _connect();
+  }
+
+  Future<void> _loadControl() async {
+    try {
+      final results = await Future.wait([_repo.modeEvents(limit: 30), _repo.controlConfig()]);
+      modeEvents = results[0] as List<ModeEvent>;
+      controlConfig = results[1] as ControlConfig;
+      notifyListeners();
+    } on ApiException {
+      // Older servers do not have these endpoints; the dashboard works without them.
+    }
+  }
+
+  void _setServerTime(DateTime? serverTime) {
+    if (serverTime != null) _serverOffset = serverTime.difference(DateTime.now().toUtc());
   }
 
   void stop() {
@@ -92,11 +118,13 @@ class LiveController extends ChangeNotifier {
         _repo.activeEmergencies(),
       ]);
       overview = results[0] as TrafficOverview;
+      _setServerTime(overview!.generatedAt);
       _vehicles = results[1] as List<LiveVehicle>;
       intersections = results[2] as List<IntersectionTraffic>;
       emergencies = results[3] as List<ActiveEmergency>;
       _afterUpdate();
       error = null;
+      if (connection == LiveConnection.polling) unawaited(_loadControl()); // no live mode events while polling
     } on ApiException catch (e) {
       error = e.message;
       if (e.isNetwork) connection = LiveConnection.offline;
@@ -145,6 +173,7 @@ class LiveController extends ChangeNotifier {
         connection = LiveConnection.live;
         _pollTimer?.cancel();
       case 'snapshot':
+        _setServerTime(parseTime(msg['serverTime']));
         overview = TrafficOverview(msg['summary'] as Json);
         _vehicles = jsonList(msg['vehicles']).map(LiveVehicle.fromJson).toList();
         intersections = jsonList(msg['intersections']).map(IntersectionTraffic.new).toList();
@@ -152,8 +181,13 @@ class LiveController extends ChangeNotifier {
         connection = LiveConnection.live;
         _afterUpdate();
       case 'event':
-        _events.add(LiveEvent(msg['event'] as String, msg));
-        unawaited(refresh());
+        final type = msg['event'] as String;
+        _events.add(LiveEvent(type, msg));
+        if (type == 'MODE_CHANGED') {
+          modeEvents = [ModeEvent.fromLive(msg), ...modeEvents].take(50).toList();
+        } else {
+          unawaited(refresh());
+        }
     }
     notifyListeners();
   }

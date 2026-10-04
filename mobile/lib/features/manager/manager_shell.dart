@@ -5,10 +5,12 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/units.dart';
+import '../../data/models/control.dart';
 import '../../widgets/common.dart';
 import 'dashboard_screen.dart';
 import 'emergency_admin_screen.dart';
 import 'history_screen.dart';
+import 'intersection_detail_screen.dart';
 import 'intersections_screen.dart';
 import 'live_controller.dart';
 import 'live_map_screen.dart';
@@ -65,6 +67,10 @@ class _ManagerShellState extends State<ManagerShell> {
 
   void _onEvent(LiveEvent e) {
     if (!mounted) return;
+    if (e.type == 'MODE_CHANGED') {
+      _onModeChanged(e);
+      return;
+    }
     final code = e.data['vehicleCode'] ?? '';
     final text = switch (e.type) {
       'EMERGENCY_STARTED' => 'Emergency vehicle $code is active${e.data['isSimulated'] == true ? ' (simulated)' : ''}',
@@ -86,26 +92,69 @@ class _ManagerShellState extends State<ManagerShell> {
     ));
   }
 
+  /// "I2 now Adaptive: High congestion detected", with a shortcut to the intersection.
+  void _onModeChanged(LiveEvent e) {
+    final to = e.data['toMode'] as String? ?? '';
+    final code = e.data['intersectionCode'] as String? ?? '';
+    final id = e.data['intersectionId'] as String?;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      backgroundColor: ModeColors.of(to),
+      duration: const Duration(seconds: 6),
+      content: Row(children: [
+        Icon(ModeColors.icon(to), color: Colors.white),
+        const SizedBox(width: 10),
+        Expanded(child: Text('$code now ${modeLabel(to).toLowerCase()}: ${e.data['headline'] ?? ''}')),
+      ]),
+      action: id == null
+          ? null
+          : SnackBarAction(
+              label: 'View',
+              textColor: Colors.white,
+              onPressed: () => Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => IntersectionDetailScreen(intersectionId: id))),
+            ),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 900;
     if (wide) {
+      const railText = Color(0xFFB9C6E4);
       return Scaffold(
         body: Row(children: [
-          NavigationRail(
-            selectedIndex: _index,
-            onDestinationSelected: (i) => setState(() => _index = i),
-            labelType: NavigationRailLabelType.all,
-            leading: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Icon(Icons.traffic, size: 32),
+          DecoratedBox(
+            decoration: const BoxDecoration(gradient: Brand.rail),
+            child: NavigationRail(
+              backgroundColor: Colors.transparent,
+              selectedIndex: _index,
+              onDestinationSelected: (i) => setState(() => _index = i),
+              labelType: NavigationRailLabelType.all,
+              indicatorColor: Colors.white.withValues(alpha: 0.14),
+              selectedIconTheme: const IconThemeData(color: Colors.white),
+              unselectedIconTheme: const IconThemeData(color: railText),
+              selectedLabelTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
+              unselectedLabelTextStyle: const TextStyle(color: railText, fontSize: 12),
+              leading: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 16, 8, 12),
+                child: Column(children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(gradient: Brand.action, borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(Icons.traffic, color: Colors.white, size: 26),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text('Smart Traffic',
+                      style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+                ]),
+              ),
+              destinations: [
+                for (final s in _sections)
+                  NavigationRailDestination(
+                      icon: Icon(s.icon), selectedIcon: Icon(s.selectedIcon), label: Text(s.label)),
+              ],
             ),
-            destinations: [
-              for (final s in _sections)
-                NavigationRailDestination(icon: Icon(s.icon), selectedIcon: Icon(s.selectedIcon), label: Text(s.label)),
-            ],
           ),
-          const VerticalDivider(width: 1),
           Expanded(child: _sections[_index].builder(context)),
         ]),
       );

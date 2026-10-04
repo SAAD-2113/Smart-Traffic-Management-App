@@ -4,11 +4,13 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/units.dart';
 import '../../core/utils/validators.dart';
+import '../../data/models/control.dart';
 import '../../data/models/signals.dart';
 import '../../data/models/traffic.dart';
 import '../../data/repositories/manager_repository.dart';
 import '../../widgets/charts.dart';
 import '../../widgets/common.dart';
+import '../../widgets/signal_widgets.dart';
 import 'live_controller.dart';
 import 'signal_plan_screen.dart';
 
@@ -23,6 +25,7 @@ class IntersectionDetailScreen extends StatefulWidget {
 class _IntersectionDetailScreenState extends State<IntersectionDetailScreen> {
   IntersectionConfig? _config;
   HistorySeries? _history;
+  List<ModeEvent> _modeEvents = [];
   Object? _error;
 
   @override
@@ -41,6 +44,11 @@ class _IntersectionDetailScreenState extends State<IntersectionDetailScreen> {
       _config = results[0] as IntersectionConfig;
       _history = results[1] as HistorySeries;
       _error = null;
+      try {
+        _modeEvents = await repo.modeEvents(intersectionId: widget.intersectionId, limit: 10);
+      } catch (_) {
+        _modeEvents = []; // older server
+      }
     } catch (e) {
       _error = e;
     }
@@ -75,7 +83,8 @@ class _IntersectionDetailScreenState extends State<IntersectionDetailScreen> {
                 CongestionBadge(t.congestionLevel),
                 DataQualityChip(t.dataQuality),
                 StatusChip(label: t.status, color: t.isActive ? StatusColors.ok : StatusColors.neutral),
-                StatusChip(label: '${t.controllerType} control', color: StatusColors.info),
+                if (t.control != null) ModeBadge(t.control!.mode),
+                StatusChip(label: 'Policy: ${policyLabel(t.controllerType)}', color: StatusColors.info, icon: Icons.tune),
                 if (t.sources.isNotEmpty) StatusChip(label: 'Sources: ${t.sources.join(', ')}', color: StatusColors.neutral),
               ]),
               if (t.fullyObserved)
@@ -93,12 +102,28 @@ class _IntersectionDetailScreenState extends State<IntersectionDetailScreen> {
                         '${Units.distance(e.distanceM)} away, ETA ${e.etaS == null ? '—' : '${e.etaS!.toStringAsFixed(0)} s'}',
                   ),
               ],
+              const SectionHeader('Signal control', subtitle: 'Current mode, why, and the timing in use'),
+              ControlCard(item: t, serverNow: () => live.serverNow),
+              if (_modeEvents.isNotEmpty) ...[
+                const SectionHeader('Mode changes here'),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    child: Column(children: [
+                      for (final (i, e) in _modeEvents.indexed) ...[
+                        if (i > 0) const Divider(height: 1),
+                        ModeEventTile(event: e),
+                      ],
+                    ]),
+                  ),
+                ),
+              ],
               _MetricsSection(t: t),
               const SectionHeader('Approaches', subtitle: 'Per direction of travel into the junction'),
               _ApproachTable(approaches: t.approaches),
               const SectionHeader('Coordination', subtitle: 'Traffic coming from and going to neighbouring intersections'),
               _Coordination(t: t),
-              const SectionHeader('Signal'),
+              const SectionHeader('Controller and decision', subtitle: 'What the signal controller reports and receives'),
               _SignalCard(t: t),
               const SectionHeader('Last hour', subtitle: 'Snapshots every 30 s, averaged per minute'),
               if (_history == null)
@@ -243,7 +268,7 @@ class _Coordination extends StatelessWidget {
           ListTile(
             dense: true,
             leading: const Icon(Icons.call_received),
-            title: Text('From ${u.fromCode} → ${u.toApproachName ?? 'approach'}'),
+            title: Text('From ${u.fromCode} to ${u.toApproachName ?? 'approach'}'),
             subtitle: Text('${u.vehiclesOnLink} on the link · ${u.expectedArrivals60s} arriving within 60 s'
                 '${u.avgSpeedMps != null ? ' · ${Units.speed(u.avgSpeedMps)}' : ''}'),
           ),
@@ -296,7 +321,7 @@ class _SignalCard extends StatelessWidget {
             Text('Valid until ${Units.clock(d.validUntil)}', style: Theme.of(context).textTheme.bodySmall),
           ] else if (t.controllerType == 'FIXED') ...[
             const Divider(height: 24),
-            const Text('Fixed-time control: the controller runs its local plan; the engine sends no decisions.'),
+            const Text('Fixed-time only: the controller runs its local plan; the engine sends no decisions.'),
           ],
           const SizedBox(height: 8),
           Align(
@@ -326,16 +351,21 @@ class _ConfigCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Control mode'),
+          const Text('Signal control policy'),
           const SizedBox(height: 6),
           SegmentedButton<String>(
             segments: const [
-              ButtonSegment(value: 'FIXED', label: Text('Fixed time')),
-              ButtonSegment(value: 'ADAPTIVE', label: Text('Adaptive')),
+              ButtonSegment(value: 'AUTO', label: Text('Automatic'), icon: Icon(Icons.auto_mode)),
+              ButtonSegment(value: 'FIXED', label: Text('Fixed only'), icon: Icon(Icons.schedule)),
+              ButtonSegment(value: 'ADAPTIVE', label: Text('Adaptive only'), icon: Icon(Icons.trending_up)),
             ],
+            showSelectedIcon: false,
             selected: {config.controllerType},
-            onSelectionChanged: (s) => onUpdate({'controllerType': s.first}, 'Control mode set to ${s.first}.'),
+            onSelectionChanged: (s) =>
+                onUpdate({'controllerType': s.first}, 'Signal control set to ${policyLabel(s.first).toLowerCase()}.'),
           ),
+          const SizedBox(height: 6),
+          Text(policyDescription(config.controllerType), style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 12),
           const Text('Status'),
           const SizedBox(height: 6),
@@ -431,7 +461,7 @@ class _ConfigCard extends StatelessWidget {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (dialogContext, setState) => AlertDialog(
-          title: Text('Link ${config.code} → …'),
+          title: Text('Link from ${config.code}'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
             DropdownButtonFormField<String>(
               initialValue: target.id,
