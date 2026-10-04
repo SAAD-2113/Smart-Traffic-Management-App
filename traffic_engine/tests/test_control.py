@@ -70,6 +70,20 @@ def test_heavier_phase_gets_more_green_within_limits(corridor):
     assert "Eastbound" in d.reason and d.inputs["flowRatios"]["EW"] > 0
 
 
+def test_adaptive_cycle_never_shorter_than_fixed_plan(corridor):
+    # A modest queue: plain Webster would pick a cycle shorter than the fixed 60 s plan,
+    # which would give even the busy phase less green than fixed-time.
+    observations = queue(corridor, "I1", 6)
+    webster = cycle(corridor, observations, engine=TrafficEngine(
+        adaptive=DemandProportionalController(fixed_cycle_floor=False))).decisions["I1"]
+    assert webster.cycle_s < PLAN.fixed_cycle_s
+    d = cycle(corridor, observations).decisions["I1"]
+    assert d.algorithm == Algorithm.DEMAND_PROPORTIONAL
+    assert d.cycle_s >= PLAN.fixed_cycle_s
+    assert d.green_for("EW") > 25 > d.green_for("NS")  # green moved to the busy phase
+    assert d.inputs["cycleFloorS"] == PLAN.fixed_cycle_s and "raised to the fixed plan" in d.reason
+
+
 def test_upstream_arrivals_raise_demand_before_queue_forms(corridor):
     arriving = []
     for i in range(6):  # heading east on link I1 -> I2, ~300 m from I2 at 10 m/s → ETA 30 s

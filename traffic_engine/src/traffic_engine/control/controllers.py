@@ -75,12 +75,19 @@ class DemandProportionalController:
     cycle C             = (1.5 L + 5) / (1 - Y), clamped to the plan's cycle range
     green g_i           = (C - L) x y_i / Y, clamped to [min green, max green]
     Greens feeding a SEVERELY congested downstream intersection are reduced (gating).
+
+    By default the cycle is never shorter than the fixed plan's cycle: adaptive timing moves
+    green time to the busier phase and lengthens the cycle when demand is high, but does not
+    cut the cycle below the configured plan (Webster's short cycles for light demand would
+    otherwise give even the congested phase less green than the fixed plan).
+    `fixed_cycle_floor=False` gives plain Webster within the plan's cycle range.
     """
 
     name = "demand_proportional"
 
-    def __init__(self, fallback: FixedTimeController | None = None) -> None:
+    def __init__(self, fallback: FixedTimeController | None = None, fixed_cycle_floor: bool = True) -> None:
         self.fallback = fallback or FixedTimeController()
+        self.fixed_cycle_floor = fixed_cycle_floor
 
     def decide(self, state, plan, network, node, now) -> SignalDecision:
         metrics = state.metrics
@@ -118,8 +125,9 @@ class DemandProportionalController:
         total = sum(flow_ratios.values())
         lost = plan.lost_time_s
         capped = min(total, MAX_FLOW_RATIO_SUM)
-        cycle = (1.5 * lost + 5.0) / (1.0 - capped)
-        cycle = max(plan.min_cycle_s, min(plan.max_cycle_s, cycle))
+        webster = (1.5 * lost + 5.0) / (1.0 - capped)
+        floor = max(plan.min_cycle_s, plan.fixed_cycle_s) if self.fixed_cycle_floor else plan.min_cycle_s
+        cycle = min(plan.max_cycle_s, max(floor, webster))
         effective = cycle - lost
 
         greens: dict[str, float] = {}
@@ -145,8 +153,9 @@ class DemandProportionalController:
 
         final_cycle = sum(round(g) for g in greens.values()) + lost
         reason = (
-            f"Webster-style split, Y={total:.2f}, Webster cycle {cycle:.0f} s, "
-            f"{final_cycle:.0f} s after green limits. " + "; ".join(demand_notes)
+            f"Webster-style split, Y={total:.2f}, Webster cycle {webster:.0f} s, "
+            + (f"raised to the fixed plan's {plan.fixed_cycle_s:.0f} s, " if webster < floor and floor > plan.min_cycle_s else "")
+            + f"{final_cycle:.0f} s after green limits. " + "; ".join(demand_notes)
         )
         if gated:
             reason += ". Gated: " + ", ".join(sorted(set(gated)))
@@ -154,6 +163,8 @@ class DemandProportionalController:
             "flowRatios": {k: round(v, 3) for k, v in flow_ratios.items()},
             "flowRatioSum": round(total, 3),
             "lostTimeS": lost,
+            "websterCycleS": round(webster, 1),
+            "cycleFloorS": floor,
             "dataQuality": metrics.data_quality.value,
             "saturationFlowVehPerHPerLane": SATURATION_FLOW_VEH_PER_H_PER_LANE,
         }

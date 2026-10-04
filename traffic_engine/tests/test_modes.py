@@ -110,6 +110,7 @@ def test_a_few_queued_vehicles_are_not_congestion(corridor):
     clock = Clock(corridor)
     _, status = clock.run(40, state(CongestionLevel.SEVERE, vehicles=3, speed=0.5))
     assert status.mode == ControlMode.FIXED_TIME and status.reason == ModeReason.NORMAL_TRAFFIC
+    assert status.headline == "Light traffic" and "fewer than the 8 needed" in status.detail
 
 
 def test_returns_to_fixed_only_after_traffic_stays_normal(corridor):
@@ -130,7 +131,7 @@ def test_moderate_traffic_keeps_adaptive_timing(corridor):
     clock.run(30, state(CongestionLevel.SEVERE, vehicles=40))
     _, status = clock.run(30, state(CongestionLevel.MODERATE, vehicles=20, speed=7.0))
     assert status.mode == ControlMode.ADAPTIVE and status.reason == ModeReason.CONGESTION_EASING
-    assert status.pending is None and "until it is LOW" in status.detail
+    assert status.pending is None and "until traffic has been LOW" in status.detail
 
 
 def test_too_little_data_keeps_fixed_and_leaves_adaptive(corridor):

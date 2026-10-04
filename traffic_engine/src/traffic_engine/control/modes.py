@@ -291,7 +291,7 @@ class ModeController:
         )
 
     # -- explanations ----------------------------------------------------------------
-    def _explain(self, reason: ModeReason, t: TrafficSnapshot, pending: PendingSwitch | None) -> tuple[str, str]:
+    def _explain(self, reason: ModeReason, t: TrafficSnapshot) -> tuple[str, str]:
         th = self.thresholds
         window = f"{th.window_s:.0f} s"
         avg = t.averaged_level.value if t.averaged_level else "unknown"
@@ -301,22 +301,28 @@ class ModeController:
         if t.worst_approach and t.worst_approach_level in (CongestionLevel.HIGH, CongestionLevel.SEVERE):
             figures += (f"; worst approach {t.worst_approach} ({t.worst_approach_level.value}, "
                         f"{_vehicles(t.worst_approach_vehicles)})")
+        few = (t.window_estimated_vehicles or 0.0) < th.min_vehicles
+        slow = t.averaged_level is not None and t.averaged_level.rank >= th.enter_level.rank
         match reason:
+            case ModeReason.NORMAL_TRAFFIC if slow and few:
+                return "Light traffic", (
+                    f"Vehicles are slow (average congestion {avg}) but there are only {vehicles:.0f} on average, "
+                    f"fewer than the {th.min_vehicles:.0f} needed to count as congestion; the fixed-time plan is running.")
             case ModeReason.NORMAL_TRAFFIC:
                 return "Normal traffic", (f"Average congestion over the last {window} is {avg} ({figures}); "
                                           "the fixed-time plan is running.")
             case ModeReason.CONGESTION_DETECTED:
+                # The countdown itself is in `pending`; the text stays valid while it runs.
                 return "Congestion building", (
-                    f"Average congestion is {avg} ({figures}); switching to adaptive timing in "
-                    f"{pending.in_s:.0f} s if it persists." if pending else f"Average congestion is {avg}.")
+                    f"Average congestion is {avg} ({figures}). Adaptive timing starts once this has lasted "
+                    f"{th.enter_hold_s:.0f} s.")
             case ModeReason.HIGH_CONGESTION | ModeReason.SEVERE_CONGESTION:
                 head = "Severe congestion detected" if reason == ModeReason.SEVERE_CONGESTION else "High congestion detected"
-                return head, f"{figures}. Green times are calculated from current demand instead of the fixed plan."
+                return head, (f"Average congestion is {avg} ({figures}). Green times are calculated from "
+                              "current demand instead of the fixed plan.")
             case ModeReason.CONGESTION_EASING:
                 return "Congestion easing", (
-                    f"Average congestion is {avg} ({figures}); returning to the fixed-time plan in "
-                    f"{pending.in_s:.0f} s if traffic stays normal." if pending else
-                    f"Average congestion is {avg} ({figures}); adaptive timing continues until it is "
+                    f"Average congestion is {avg} ({figures}). Adaptive timing continues until traffic has been "
                     f"{th.exit_level.value} or lower for {th.exit_hold_s:.0f} s.")
             case ModeReason.CONGESTION_CLEARED:
                 return "Congestion cleared", (f"Traffic has been normal for {th.exit_hold_s:.0f} s (average "
@@ -423,7 +429,7 @@ class ModeController:
                 self._set_base(track, ControlMode.FIXED_TIME, now)
                 reason = ModeReason.INSUFFICIENT_DATA
 
-        headline, detail = self._explain(reason, snapshot, pending)
+        headline, detail = self._explain(reason, snapshot)
         effective = track.base_mode
         if decision is not None and decision.algorithm == Algorithm.EMERGENCY_PRIORITY:
             effective = ControlMode.EMERGENCY_PRIORITY
