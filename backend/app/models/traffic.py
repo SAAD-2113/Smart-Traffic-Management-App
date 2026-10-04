@@ -99,3 +99,23 @@ class SignalStateRecord(Base):
     decision_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("signal_decisions.id", ondelete="SET NULL"))
     client_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("controller_clients.id", ondelete="SET NULL"))
     source: Mapped[str] = mapped_column(String(16), nullable=False, default="CONTROLLER")
+
+
+class SignalModeEvent(Base):
+    """A change of control mode (fixed-time / adaptive / emergency priority) and why it happened."""
+
+    __tablename__ = "signal_mode_events"
+    __table_args__ = (Index("ix_signal_mode_events_intersection_at", "intersection_id", "at"),)
+
+    id: Mapped[int] = mapped_column(BigIntPK, primary_key=True, autoincrement=True)
+    intersection_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("intersections.id", ondelete="CASCADE"), nullable=False
+    )
+    at: Mapped[datetime] = mapped_column(UTCDateTime(), nullable=False)
+    policy: Mapped[str] = mapped_column(String(16), nullable=False)
+    from_mode: Mapped[str] = mapped_column(String(32), nullable=False)
+    to_mode: Mapped[str] = mapped_column(String(32), nullable=False)
+    reason: Mapped[str] = mapped_column(String(32), nullable=False)
+    headline: Mapped[str] = mapped_column(String(120), nullable=False)
+    detail: Mapped[str] = mapped_column(Text, nullable=False)
+    traffic: Mapped[dict] = mapped_column(JSONType, nullable=False, default=dict)

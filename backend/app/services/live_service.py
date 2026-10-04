@@ -9,14 +9,14 @@ from app.core.config import get_settings
 from app.core.errors import not_found
 from app.core.time import utcnow
 from app.models.emergency import EmergencyEvent
-from app.models.enums import EmergencyEventStatus, IntersectionStatus, VehicleStatus
+from app.models.enums import ActuatorType, EmergencyEventStatus, IntersectionStatus, VehicleStatus
 from app.models.telemetry import TrackingSession, VehicleLiveState, VehicleTelemetry
 from app.models.user import User
 from app.models.vehicle import Vehicle
 from app.realtime.hub import hub
 from app.repositories import vehicle_repo
 from app.schemas.telemetry import LiveStateOut, LiveVehicleOut, OwnerLatestOut, TelemetryPointOut
-from app.schemas.traffic import IntersectionTrafficOut, OverviewOut, SystemStatusOut
+from app.schemas.traffic import ControlStatusOut, IntersectionTrafficOut, OverviewOut, SignalDisplayOut, SystemStatusOut
 from app.services import emergency_service, network_cache, signal_service, tracking_service, traffic_views
 from app.services.demo_service import demo
 from app.services.external_sources import external_store
@@ -149,6 +149,30 @@ async def owner_latest(db: AsyncSession, owner: User, vehicle_id: uuid.UUID) -> 
 
 # -- traffic ---------------------------------------------------------------------------
 
+def control_status(snapshot, code: str) -> ControlStatusOut | None:
+    status = snapshot.control.get(code)
+    return traffic_views.control_out(status) if status is not None else None
+
+
+def display_signal(snapshot, code: str, info, now: datetime) -> SignalDisplayOut | None:
+    """The lights to show: a connected actuator's report, else the server's virtual controller
+    for DISPLAY_ONLY intersections (labelled virtual), else nothing."""
+    from app.services.runner import runner
+
+    node = snapshot.network.intersections.get(code)
+    plan = snapshot.plans.get(code)
+    if node is None or plan is None or info.status != IntersectionStatus.ACTIVE:
+        return None
+    reported = signal_service.state_store.get(code)
+    if reported is not None and signal_service.state_store.connected(code, now):
+        return traffic_views.display_out(reported, virtual=False, plan=plan[0], node=node)
+    if info.actuator == ActuatorType.DISPLAY_ONLY:
+        virtual = runner.virtual_state(code)
+        if virtual is not None:
+            return traffic_views.display_out(virtual, virtual=True, plan=plan[0], node=node)
+    return None
+
+
 async def intersections_traffic(db: AsyncSession, snapshot, now: datetime) -> list[IntersectionTrafficOut]:
     result = []
     for code, info in sorted(snapshot.refs.by_code.items()):
@@ -158,6 +182,8 @@ async def intersections_traffic(db: AsyncSession, snapshot, now: datetime) -> li
             signal=await signal_service.latest_state(db, info.id, code),
             connected=signal_service.state_store.connected(code, now),
             decision=decision, computed_at=snapshot.computed_at,
+            control=control_status(snapshot, code),
+            display_signal=display_signal(snapshot, code, info, now),
         ))
     return result
 
@@ -187,6 +213,7 @@ async def overview(db: AsyncSession, snapshot, now: datetime) -> OverviewOut:
     except Exception:
         database = "unavailable"
     infos = snapshot.refs.by_code.values()
+    modes = [c.mode.value for c in snapshot.control.values()]
     return OverviewOut(
         generated_at=now,
         total_registered_vehicles=total_real,
@@ -201,6 +228,9 @@ async def overview(db: AsyncSession, snapshot, now: datetime) -> OverviewOut:
         connected_intersections=sum(1 for c in snapshot.refs.by_code if signal_service.state_store.connected(c, now)),
         congested_intersections=len(congested),
         congested_intersection_codes=congested,
+        fixed_time_intersections=modes.count("FIXED_TIME"),
+        adaptive_intersections=modes.count("ADAPTIVE"),
+        emergency_priority_intersections=modes.count("EMERGENCY_PRIORITY"),
         pending_authorizations=await emergency_service.count_pending(db),
         system=SystemStatusOut(
             database=database, engine_running=runner.running,

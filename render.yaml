@@ -32,7 +32,7 @@ services:
         value: "true"
       # First start only: creates the placeholder I1-I4 corridor if it does not exist.
       - key: SEED_CORRIDOR
-        value: adaptive
+        value: auto
       # Your admin (manager) login, asked for when you create the Blueprint. Password: at least
       # 10 characters with a letter and a digit. Changing these later does not change an existing account.
       - key: BOOTSTRAP_ADMIN_EMAIL

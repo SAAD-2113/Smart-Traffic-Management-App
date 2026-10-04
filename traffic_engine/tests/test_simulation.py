@@ -1,4 +1,5 @@
 from datetime import timedelta
+import pytest
 
 from traffic_engine import TrafficEngine
 from traffic_engine.control import Algorithm, PhaseGreen, SignalDecision
@@ -133,3 +134,40 @@ def test_routes_start_outside_and_pass_through_junctions(corridor):
     first_node = corridor.intersections[vehicle.route.stops[0].node_code]
     start = vehicle.route.points[0]
     assert haversine_m(start[0], start[1], first_node.lat, first_node.lon) > first_node.approach_radius_m
+
+
+def _first_stops(corridor, surge: bool) -> list[str]:
+    specs = [VehicleSpec(f"sim{i}", f"SIM-{i:04d}") for i in range(30)]
+    fleet = DemoFleet(corridor, specs, seed=5)
+    signals = {code: VirtualSignal(code, PLAN) for code in corridor.intersections}
+    if surge:
+        fleet.start_surge("I2", 600)
+        assert fleet.surge_active and fleet.surge_remaining_s == 600
+    now = NOW
+    stops = []
+    for _ in range(600):
+        fleet.step(0.5, now, signals)
+        now += timedelta(seconds=0.5)
+        for event in fleet.drain_events():
+            if event.kind == "TRIP_STARTED":
+                vehicle = next(v for v in fleet.vehicles if v.spec.key == event.vehicle_key)
+                stops.append(vehicle.route.stops[0].node_code)
+    return stops
+
+
+def test_surge_sends_more_new_trips_through_one_intersection(corridor):
+    normal = _first_stops(corridor, surge=False)
+    surge = _first_stops(corridor, surge=True)
+    assert len(surge) > 20
+    normal_share = normal.count("I2") / len(normal)
+    surge_share = surge.count("I2") / len(surge)
+    assert surge_share > 0.45 and surge_share > 2 * normal_share
+
+
+def test_surge_can_be_stopped_and_needs_a_known_intersection(corridor):
+    fleet = DemoFleet(corridor, [VehicleSpec("sim0", "SIM-0000")], seed=5)
+    fleet.start_surge("I3", 60)
+    fleet.stop_surge()
+    assert not fleet.surge_active and fleet.surge_remaining_s == 0
+    with pytest.raises(ValueError):
+        fleet.start_surge("I9", 60)

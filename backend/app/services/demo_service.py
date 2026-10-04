@@ -87,7 +87,28 @@ class DemoService:
             active_vehicles=fleet.active_count if fleet else 0,
             emergency_active=bool(self._emergency_keys),
             simulated_seconds=round(fleet.clock_s, 1) if fleet else 0.0,
+            surge_intersection_code=fleet.surge_code if fleet and fleet.surge_active else None,
+            surge_remaining_s=round(fleet.surge_remaining_s, 0) if fleet else 0.0,
         )
+
+    # -- simulated rush hour ---------------------------------------------------------------
+    async def start_surge(self, factory: async_sessionmaker, actor: User, code: str, duration_s: float) -> DemoStatusOut:
+        """Send most simulated trips through one intersection, so its congestion builds up."""
+        if self.fleet is None:
+            raise AppError(409, "DEMO_NOT_RUNNING", "Start the simulation first.")
+        if code not in self.fleet.network.intersections or not self.fleet.network.intersections[code].active:
+            raise AppError(404, "NOT_FOUND", f"Intersection {code} is not part of the simulation.")
+        self.fleet.start_surge(code, duration_s)
+        async with factory() as db:
+            await audit_repo.record(db, "demo.surge_started", actor_user_id=actor.id,
+                                    details={"intersection": code, "durationS": duration_s})
+            await db.commit()
+        return self.status()
+
+    def stop_surge(self) -> DemoStatusOut:
+        if self.fleet is not None:
+            self.fleet.stop_surge()
+        return self.status()
 
     # -- lifecycle ---------------------------------------------------------------------
     async def start(

@@ -4,7 +4,11 @@ The coordinates are PLACEHOLDERS on a straight east-west line. Replace them with
 junctions (PATCH /api/v1/intersections/{id}) before collecting real data. Safe to re-run:
 existing intersections, approaches and links are left untouched.
 
-Usage: uv run python -m scripts.seed_intersections [--adaptive]
+Usage: uv run python -m scripts.seed_intersections [--policy auto|fixed|adaptive]
+
+  auto      fixed-time while traffic is normal, adaptive while congested (default)
+  fixed     always the fixed-time plan
+  adaptive  always adaptive timing
 """
 import argparse
 import asyncio
@@ -38,7 +42,7 @@ async def _try(label: str, coro) -> None:
         print(f"  skipped {label}: {exc.message}")
 
 
-async def seed_corridor(db: AsyncSession, adaptive: bool) -> None:
+async def seed_corridor(db: AsyncSession, policy: str = "AUTO") -> None:
     # Pass 1: intersections
     nodes = []
     for i, code in enumerate(CODES):
@@ -54,7 +58,7 @@ async def seed_corridor(db: AsyncSession, adaptive: bool) -> None:
                     longitude=START_LON + i * SPACING_DEG_LON,
                     radius_m=40,
                     approach_radius_m=250,
-                    controller_type="ADAPTIVE" if adaptive else "FIXED",
+                    controller_type=policy.upper(),
                 ),
             )
             print(f"Created intersection {code}")
@@ -104,14 +108,16 @@ async def seed_corridor(db: AsyncSession, adaptive: bool) -> None:
             )
 
 
-async def main(adaptive: bool) -> None:
+async def main(policy: str) -> None:
     async with SessionLocal() as db:
-        await seed_corridor(db, adaptive)
+        await seed_corridor(db, policy)
     await engine.dispose()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Seed the I1-I4 placeholder corridor.")
-    parser.add_argument("--adaptive", action="store_true",
-                        help="Create the intersections in ADAPTIVE mode (advisory decisions from the engine).")
-    asyncio.run(main(parser.parse_args().adaptive))
+    parser.add_argument("--policy", choices=["auto", "fixed", "adaptive"], default="auto",
+                        help="Signal-control policy of the new intersections (default: auto).")
+    parser.add_argument("--adaptive", action="store_true", help="Old flag; same as --policy auto.")
+    args = parser.parse_args()
+    asyncio.run(main("auto" if args.adaptive else args.policy))

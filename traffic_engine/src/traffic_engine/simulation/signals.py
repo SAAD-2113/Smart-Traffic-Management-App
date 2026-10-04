@@ -7,7 +7,7 @@ Raspberry Pi controllers.
 from datetime import datetime
 from enum import StrEnum
 
-from traffic_engine.control.plan import Phase, SignalDecision, SignalPlan
+from traffic_engine.control.plan import Algorithm, Phase, SignalDecision, SignalPlan
 
 
 class LightState(StrEnum):
@@ -53,8 +53,8 @@ class VirtualSignal:
 
     def mode(self, now: datetime) -> SignalMode:
         decision = self._valid_decision(now)
-        if decision is None:
-            return SignalMode.FIXED_LOCAL
+        if decision is None or decision.algorithm == Algorithm.FIXED_TIME:
+            return SignalMode.FIXED_LOCAL  # running fixed timings (local plan or a fixed-time decision)
         return SignalMode.EMERGENCY if decision.priority_phase else SignalMode.ADAPTIVE
 
     def green_target_s(self, now: datetime) -> float:

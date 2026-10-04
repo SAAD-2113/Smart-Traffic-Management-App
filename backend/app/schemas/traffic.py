@@ -93,6 +93,82 @@ class SignalDecisionOut(ApiModel):
     advisory: bool = True
 
 
+class PhaseTimingOut(ApiModel):
+    phase: str
+    approaches: list[str]
+    green_s: float
+    yellow_s: float
+    all_red_s: float
+    red_s: float = Field(description="Rest of the cycle for this phase (includes all-red).")
+
+
+class TrafficBasisOut(ApiModel):
+    """The traffic figures a mode decision was based on. window_* values are averages."""
+
+    congestion_level: str
+    averaged_level: str | None = Field(description="Congestion averaged over window_s; null = not enough data.")
+    averaged_rank: float | None
+    data_quality: str
+    vehicle_count: int
+    estimated_vehicle_count: float | None
+    avg_speed_mps: float | None
+    avg_waiting_time_s: float | None
+    window_s: float
+    window_vehicle_count: float | None
+    window_estimated_vehicles: float | None
+    window_avg_speed_mps: float | None
+    window_avg_waiting_time_s: float | None
+    worst_approach: str | None
+    worst_approach_level: str | None
+    worst_approach_vehicles: int
+
+
+class PendingSwitchOut(ApiModel):
+    to_mode: str
+    in_s: float
+    condition: str
+
+
+class ControlStatusOut(ApiModel):
+    """Signal-control mode of one intersection: what it is doing, why, and with which timing."""
+
+    policy: str = Field(description="Configured policy: AUTO, FIXED or ADAPTIVE.")
+    mode: str = Field(description="FIXED_TIME, ADAPTIVE or EMERGENCY_PRIORITY.")
+    base_mode: str
+    reason: str
+    headline: str
+    detail: str
+    since: datetime
+    pending: PendingSwitchOut | None
+    traffic: TrafficBasisOut
+    fixed_timing: list[PhaseTimingOut]
+    fixed_cycle_s: float
+    active_timing: list[PhaseTimingOut]
+    active_cycle_s: float
+    algorithm: str | None
+    priority_phase: str | None
+    advisory: bool = True
+
+
+class SignalHeadOut(ApiModel):
+    approach: str
+    bearing_deg: float = Field(description="Direction of travel of the approach (0 = north).")
+    light: str = Field(description="GREEN, YELLOW, RED or OFF (approach not in any phase).")
+
+
+class SignalDisplayOut(ApiModel):
+    """What the lights show: reported by a connected actuator, or by the server's virtual controller."""
+
+    source: str
+    virtual: bool = Field(description="True when no actuator is connected and the server simulates the controller.")
+    phase_name: str
+    state: str
+    remaining_s: float | None
+    mode: str
+    reported_at: datetime
+    heads: list[SignalHeadOut]
+
+
 class IntersectionTrafficOut(ApiModel):
     id: uuid.UUID
     code: str
@@ -121,6 +197,8 @@ class IntersectionTrafficOut(ApiModel):
     connected: bool
     decision: SignalDecisionOut | None
     computed_at: datetime | None
+    control: ControlStatusOut | None = None
+    display_signal: SignalDisplayOut | None = None
 
 
 class SystemStatusOut(ApiModel):
@@ -149,6 +227,9 @@ class OverviewOut(ApiModel):
     connected_intersections: int
     congested_intersections: int
     congested_intersection_codes: list[str]
+    fixed_time_intersections: int = 0
+    adaptive_intersections: int = 0
+    emergency_priority_intersections: int = 0
     pending_authorizations: int
     system: SystemStatusOut
 

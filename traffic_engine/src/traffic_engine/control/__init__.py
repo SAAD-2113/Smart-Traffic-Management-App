@@ -5,6 +5,18 @@ from traffic_engine.control.controllers import (
     SignalController,
     adaptive_controller,
 )
+from traffic_engine.control.modes import (
+    ControlMode,
+    ControlPolicy,
+    ControlStatus,
+    ModeChange,
+    ModeController,
+    ModeReason,
+    ModeThresholds,
+    PendingSwitch,
+    PhaseTiming,
+    TrafficSnapshot,
+)
 from traffic_engine.control.plan import (
     Algorithm,
     Phase,
@@ -16,6 +28,16 @@ from traffic_engine.control.plan import (
 
 __all__ = [
     "Algorithm",
+    "ControlMode",
+    "ControlPolicy",
+    "ControlStatus",
+    "ModeChange",
+    "ModeController",
+    "ModeReason",
+    "ModeThresholds",
+    "PendingSwitch",
+    "PhaseTiming",
+    "TrafficSnapshot",
     "DemandProportionalController",
     "EmergencyPriorityController",
     "FixedTimeController",

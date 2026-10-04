@@ -31,6 +31,8 @@ EMERGENCY_FIRST_TRIP_S = 45.0
 EMERGENCY_TRIP_INTERVAL_S = 240.0
 DEMAND_WAVE_PERIOD_S = 180.0
 DEMAND_WAVE_LENGTH_S = 60.0
+SURGE_ENTRY_WEIGHT = 40.0        # entries feeding the surge intersection, relative to others
+SURGE_RESPAWN_MEAN_S = 2.0
 
 
 @dataclass(frozen=True)
@@ -115,6 +117,8 @@ class DemoFleet:
     seed: int = 7
     target_active_share: float = 0.8
     clock_s: float = 0.0
+    surge_code: str | None = None     # intersection receiving extra demand ("rush hour"), if any
+    surge_until_s: float = 0.0
     vehicles: list[SimVehicle] = field(init=False)
     _rng: random.Random = field(init=False)
     _entries: list[_Entry] = field(init=False)
@@ -213,6 +217,27 @@ class DemoFleet:
         ]
         return _Route(points=points, cum=cum, seg_keys=seg_keys, stops=stops, speeds=speeds[: len(points) - 1])
 
+    # -- demand ------------------------------------------------------------------------
+    def start_surge(self, code: str, duration_s: float) -> None:
+        """Send most new trips through one intersection for a while (simulated rush hour)."""
+        if code not in self.network.intersections:
+            raise ValueError(f"Unknown intersection {code}")
+        self.surge_code, self.surge_until_s = code, self.clock_s + duration_s
+        for vehicle in self.vehicles:  # bring waiting vehicles forward so demand builds quickly
+            if not vehicle.active and not vehicle.spec.is_emergency_type:
+                vehicle.respawn_at = min(vehicle.respawn_at, self.clock_s + self._rng.uniform(0.0, 10.0))
+
+    def stop_surge(self) -> None:
+        self.surge_code, self.surge_until_s = None, 0.0
+
+    @property
+    def surge_active(self) -> bool:
+        return self.surge_code is not None and self.clock_s < self.surge_until_s
+
+    @property
+    def surge_remaining_s(self) -> float:
+        return max(0.0, self.surge_until_s - self.clock_s) if self.surge_active else 0.0
+
     # -- simulation ----------------------------------------------------------------
     def _entry_weights(self) -> list[float]:
         wave = (self.clock_s % DEMAND_WAVE_PERIOD_S) < DEMAND_WAVE_LENGTH_S
@@ -223,6 +248,8 @@ class DemoFleet:
             w = 3.0 if e.corridor else 1.0
             if wave and e is wave_entry:
                 w *= 4.0
+            if self.surge_active and e.node.code == self.surge_code:
+                w *= SURGE_ENTRY_WEIGHT
             weights.append(w)
         return weights
 
@@ -235,7 +262,9 @@ class DemoFleet:
             route = self._build_route(entry, allow_turns=False)
         else:
             entry = self._rng.choices(self._entries, weights=self._entry_weights())[0]
-            route = self._build_route(entry, allow_turns=True)
+            # Rush-hour trips go straight through the surge intersection: short trips, quick turnover.
+            surge_trip = self.surge_active and entry.node.code == self.surge_code
+            route = self._build_route(entry, allow_turns=not surge_trip)
         # Do not spawn on top of a vehicle that has not left the entry yet.
         for other in self.vehicles:
             if other.active and other.route.seg_keys[0] == route.seg_keys[0] and other.s < 15.0:
@@ -260,6 +289,8 @@ class DemoFleet:
             active = sum(1 for v in self.vehicles if v.active)
             wanted = self.target_active_share * sum(1 for v in self.vehicles if not v.spec.is_emergency_type)
             mean_wait = 5.0 if active < wanted else 40.0
+            if self.surge_active:
+                mean_wait = SURGE_RESPAWN_MEAN_S
             vehicle.respawn_at = self.clock_s + self._rng.expovariate(1.0 / mean_wait)
 
     def _leader_gap(self, vehicle: SimVehicle, positions: dict[str, list[tuple[float, SimVehicle]]]):

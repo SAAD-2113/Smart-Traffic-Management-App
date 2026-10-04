@@ -16,7 +16,7 @@ class IntersectionCreate(ApiInput):
     longitude: float = Field(ge=-180, le=180)
     radius_m: float = Field(ge=10, le=500)
     approach_radius_m: float = Field(ge=20, le=2000)
-    controller_type: ControllerType = ControllerType.FIXED
+    controller_type: ControllerType = ControllerType.AUTO
     actuator: ActuatorType = ActuatorType.DISPLAY_ONLY
     sumo_tls_id: str | None = Field(default=None, max_length=64)
     assumed_penetration_rate: float = Field(default=0.05, gt=0, le=1)

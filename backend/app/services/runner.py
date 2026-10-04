@@ -6,21 +6,23 @@ Tests call run_cycle() directly instead of starting the loop.
 import asyncio
 import logging
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from traffic_engine import Network, NetworkState, Observation, Source, TrafficEngine
-from traffic_engine.control import SignalDecision, SignalPlan
+from traffic_engine.control import ControlPolicy, ControlStatus, ModeChange, SignalDecision, SignalPlan
+from traffic_engine.simulation import VirtualSignal
 
 from app.core.config import get_settings
 from app.core.time import utcnow
-from app.models.enums import ControllerType, IntersectionStatus, TelemetrySource, VehicleStatus
+from app.models.enums import IntersectionStatus, LightState, SignalMode, TelemetrySource, VehicleStatus
 from app.models.telemetry import VehicleLiveState, VehicleTelemetry
-from app.models.traffic import SignalDecisionRecord, SignalStateRecord, TrafficMetric
+from app.models.traffic import SignalDecisionRecord, SignalModeEvent, SignalStateRecord, TrafficMetric
 from app.models.vehicle import Vehicle
-from app.realtime.hub import hub
+from app.realtime.hub import hub, queue_event
+from app.schemas.traffic import SignalStateOut
 from app.services import emergency_service, network_cache, signal_service, tracking_service
 from app.services.demo_service import demo
 from app.services.external_sources import external_store
@@ -30,6 +32,9 @@ logger = logging.getLogger("app.runner")
 
 HOUSEKEEPING_INTERVAL_S = 10.0
 RETENTION_INTERVAL_S = 3600.0
+MODE_EVENT_RETENTION_DAYS = 90
+VIRTUAL_STEP_S = 0.5
+VIRTUAL_MAX_GAP_S = 10.0
 
 
 @dataclass
@@ -42,6 +47,7 @@ class CycleSnapshot:
     decisions: dict[str, SignalDecision]
     plans: dict[str, tuple[SignalPlan, bool, datetime | None]]
     observation_count: int
+    control: dict[str, ControlStatus] = field(default_factory=dict)
 
 
 async def vehicle_observations(db: AsyncSession, now: datetime) -> list[Observation]:
@@ -71,8 +77,12 @@ async def vehicle_observations(db: AsyncSession, now: datetime) -> list[Observat
 
 class TrafficRunner:
     def __init__(self) -> None:
-        self.engine = TrafficEngine()
+        self.engine = TrafficEngine(thresholds=get_settings().mode_thresholds())
         self.latest: CycleSnapshot | None = None
+        # Virtual controllers that run each intersection's plan and decisions, so the lights can
+        # be shown where no actuator (demo, SUMO, hardware) reports a real signal state.
+        self.virtual: dict[str, VirtualSignal] = {}
+        self._virtual_at: datetime | None = None
         self._task: asyncio.Task | None = None
         self._last_persist: datetime | None = None
         self._last_housekeeping: datetime | None = None
@@ -127,23 +137,26 @@ class TrafficRunner:
             network, refs = await network_cache.load(db)
             observations = await vehicle_observations(db, now) + external_store.observations(now)
             plans = await signal_service.load_plans(db, network, refs)
-            adaptive = [
-                code for code, info in refs.by_code.items()
-                if info.status == IntersectionStatus.ACTIVE and info.controller_type == ControllerType.ADAPTIVE
-            ]
+            policies = {
+                code: ControlPolicy(info.controller_type.value)
+                for code, info in refs.by_code.items() if info.status == IntersectionStatus.ACTIVE
+            }
             result = self.engine.run_cycle(
                 network, observations, now,
                 plans={code: p[0] for code, p in plans.items()},
-                adaptive_codes=adaptive,
+                policies=policies,
                 detector_counts=external_store.counts(now),
                 fully_observed_codes=external_store.fully_observed_codes(now) | demo.fully_observed_codes(),
             )
             snapshot = CycleSnapshot(
                 computed_at=now, cycle_ms=0.0, network=network, refs=refs, state=result.state,
                 decisions=result.decisions, plans=plans, observation_count=len(observations),
+                control=result.control,
             )
+            self._step_virtual(plans, result.decisions, set(policies), now)
             if persist:
                 await signal_service.decision_store.store(db, result.decisions, refs)
+                record_mode_changes(db, result.mode_changes, result.control, refs)
                 if self._due(self._last_persist, now, settings.metrics_persist_interval_s):
                     await persist_metrics(db, result.state, refs, now)
                     self._last_persist = now
@@ -173,9 +186,42 @@ class TrafficRunner:
             return self.latest
         return await self.run_cycle(factory, now=now, persist=False, broadcast=False)
 
+    # -- virtual signals ---------------------------------------------------------------
+    def _step_virtual(self, plans, decisions: dict[str, SignalDecision], codes: set[str], now: datetime) -> None:
+        last, self._virtual_at = self._virtual_at, now
+        dt = 0.0 if last is None else max(0.0, min(VIRTUAL_MAX_GAP_S, (now - last).total_seconds()))
+        for code in list(self.virtual):
+            if code not in codes:
+                del self.virtual[code]
+        for code in codes:
+            plan = plans[code][0]
+            signal = self.virtual.get(code)
+            if signal is None:
+                signal = self.virtual[code] = VirtualSignal(code, plan)
+            else:
+                signal.set_plan(plan)
+            signal.apply(decisions.get(code))
+            elapsed = 0.0
+            while elapsed < dt - 1e-9:
+                step = min(VIRTUAL_STEP_S, dt - elapsed)
+                signal.step(step, now)
+                elapsed += step
+
+    def virtual_state(self, code: str) -> SignalStateOut | None:
+        signal = self.virtual.get(code)
+        if signal is None or self._virtual_at is None:
+            return None
+        at = self._virtual_at
+        return SignalStateOut(
+            phase_name=signal.phase.name, state=LightState(signal.state.value),
+            remaining_s=round(signal.remaining_s(at), 1), mode=SignalMode(signal.mode(at).value),
+            reported_at=at, source="VIRTUAL",
+        )
+
     def reset(self) -> None:
-        self.engine = TrafficEngine()
+        self.engine = TrafficEngine(thresholds=get_settings().mode_thresholds())
         self.latest = None
+        self.virtual, self._virtual_at = {}, None
         self._last_persist = self._last_housekeeping = self._last_retention = None
 
 
@@ -211,6 +257,30 @@ async def persist_metrics(db: AsyncSession, state: NetworkState, refs: NetworkRe
             ))
 
 
+def record_mode_changes(
+    db: AsyncSession, changes: list[ModeChange], control: dict[str, ControlStatus], refs: NetworkRefs
+) -> None:
+    """Log each mode change and tell connected dashboards once the transaction commits."""
+    from app.services import traffic_views
+
+    for change in changes:
+        info = refs.by_code.get(change.code)
+        if info is None:
+            continue
+        traffic = traffic_views.basis_out(change.traffic).model_dump(mode="json", by_alias=True)
+        policy = control[change.code].policy.value if change.code in control else ""
+        db.add(SignalModeEvent(
+            intersection_id=info.id, at=change.at, policy=policy, from_mode=change.from_mode.value,
+            to_mode=change.to_mode.value, reason=change.reason.value, headline=change.headline[:120],
+            detail=change.detail, traffic=traffic,
+        ))
+        queue_event(
+            db, "MODE_CHANGED", intersectionId=str(info.id), intersectionCode=change.code,
+            fromMode=change.from_mode.value, toMode=change.to_mode.value, reason=change.reason.value,
+            headline=change.headline, detail=change.detail,
+        )
+
+
 async def apply_retention(db: AsyncSession, now: datetime) -> None:
     """Delete raw data past its retention period (see docs/SECURITY_AND_PRIVACY.md)."""
     s = get_settings()
@@ -225,6 +295,7 @@ async def apply_retention(db: AsyncSession, now: datetime) -> None:
     await db.execute(delete(SignalStateRecord).where(SignalStateRecord.received_at < now - timedelta(days=30)))
     await db.execute(delete(SignalDecisionRecord).where(SignalDecisionRecord.valid_until < now - timedelta(days=90)))
     await db.execute(delete(TrafficMetric).where(TrafficMetric.window_end < now - timedelta(days=365)))
+    await db.execute(delete(SignalModeEvent).where(SignalModeEvent.at < now - timedelta(days=MODE_EVENT_RETENTION_DAYS)))
 
 
 runner = TrafficRunner()

@@ -26,9 +26,9 @@ def test_provider_database_urls_use_asyncpg(given, expected):
 
 
 async def test_bootstrap_creates_admin_and_corridor_once(session_factory, client):
-    env = {**ADMIN_ENV, "SEED_CORRIDOR": "adaptive"}
+    env = {**ADMIN_ENV, "SEED_CORRIDOR": "auto"}
     async with session_factory() as db:
-        assert await bootstrap(db, env) == ["created admin owner@example.com", "seeded corridor I1-I4 (adaptive)"]
+        assert await bootstrap(db, env) == ["created admin owner@example.com", "seeded corridor I1-I4 (AUTO)"]
     async with session_factory() as db:
         assert await bootstrap(db, env) == [
             "admin owner@example.com already exists (unchanged)",
@@ -41,7 +41,7 @@ async def test_bootstrap_creates_admin_and_corridor_once(session_factory, client
     token = login.json()["accessToken"]
     nodes = (await client.get(f"{API}/intersections", headers={"Authorization": f"Bearer {token}"})).json()
     assert sorted(n["code"] for n in nodes) == ["I1", "I2", "I3", "I4"]
-    assert {n["controllerType"] for n in nodes} == {"ADAPTIVE"}
+    assert {n["controllerType"] for n in nodes} == {"AUTO"}
 
 
 async def test_bootstrap_does_nothing_without_settings(session_factory):

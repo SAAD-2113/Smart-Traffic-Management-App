@@ -6,7 +6,8 @@ runs this before the server starts (see start.sh). It is safe to run on every st
 - BOOTSTRAP_ADMIN_EMAIL + BOOTSTRAP_ADMIN_PASSWORD (+ optional BOOTSTRAP_ADMIN_NAME):
   creates that ADMIN account if no account with the email exists. An existing account is
   never changed, so the password can be changed later in the app.
-- SEED_CORRIDOR=adaptive|fixed: creates the placeholder I1-I4 corridor if it is missing.
+- SEED_CORRIDOR=auto|fixed|adaptive: creates the placeholder I1-I4 corridor if it is missing
+  (`adaptive` is accepted as the old spelling of `auto`).
 
 Usage: python -m scripts.bootstrap
 """
@@ -57,14 +58,15 @@ async def bootstrap(db: AsyncSession, env: Mapping[str, str]) -> list[str]:
 
     corridor = env.get("SEED_CORRIDOR", "").strip().lower()
     if corridor:
-        if corridor not in ("adaptive", "fixed"):
-            raise BootstrapError("SEED_CORRIDOR must be 'adaptive' or 'fixed'.")
+        policy = {"auto": "AUTO", "adaptive": "AUTO", "fixed": "FIXED"}.get(corridor)
+        if policy is None:
+            raise BootstrapError("SEED_CORRIDOR must be 'auto' or 'fixed'.")
         existing = [code for code in CODES if await intersection_service.get_by_code(db, code) is not None]
         if len(existing) == len(CODES):
             done.append("corridor I1-I4 already present (unchanged)")
         else:
-            await seed_corridor(db, adaptive=corridor == "adaptive")
-            done.append(f"seeded corridor I1-I4 ({corridor})")
+            await seed_corridor(db, policy)
+            done.append(f"seeded corridor I1-I4 ({policy})")
     return done
 
 

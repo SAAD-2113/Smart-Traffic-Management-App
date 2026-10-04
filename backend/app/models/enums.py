@@ -48,6 +48,9 @@ class IntersectionStatus(StrEnum):
 
 
 class ControllerType(StrEnum):
+    """Signal-control policy. AUTO: fixed-time while traffic is normal, adaptive while congested."""
+
+    AUTO = "AUTO"
     FIXED = "FIXED"
     ADAPTIVE = "ADAPTIVE"
 

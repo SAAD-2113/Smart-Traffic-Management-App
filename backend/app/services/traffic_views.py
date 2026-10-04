@@ -1,18 +1,25 @@
 """Converts engine state into API models (the engine itself knows nothing about the API)."""
 from datetime import datetime
 
-from traffic_engine import ApproachMetrics, IntersectionMetrics, IntersectionState, ObservedStats
+from traffic_engine import ApproachMetrics, IntersectionGeometry, IntersectionMetrics, IntersectionState, ObservedStats
+from traffic_engine.control import ControlStatus, PhaseTiming, SignalPlan, TrafficSnapshot
 
 from app.schemas.traffic import (
     ApproachTrafficOut,
     CalculatedOut,
+    ControlStatusOut,
     DownstreamOut,
     EmergencyNearOut,
     EstimatedOut,
     IntersectionTrafficOut,
     ObservedOut,
+    PendingSwitchOut,
+    PhaseTimingOut,
     SignalDecisionOut,
+    SignalDisplayOut,
+    SignalHeadOut,
     SignalStateOut,
+    TrafficBasisOut,
     UpstreamOut,
 )
 from app.services.network_cache import IntersectionInfo
@@ -51,6 +58,64 @@ def approach_out(a: ApproachMetrics, penetration: float) -> ApproachTrafficOut:
     )
 
 
+def basis_out(t: TrafficSnapshot) -> TrafficBasisOut:
+    return TrafficBasisOut(
+        congestion_level=t.congestion_level.value,
+        averaged_level=t.averaged_level.value if t.averaged_level else None,
+        averaged_rank=t.averaged_rank, data_quality=t.data_quality.value, vehicle_count=t.vehicle_count,
+        estimated_vehicle_count=t.estimated_vehicle_count, avg_speed_mps=t.avg_speed_mps,
+        avg_waiting_time_s=t.avg_waiting_time_s, window_s=t.window_s, window_vehicle_count=t.window_vehicle_count,
+        window_estimated_vehicles=t.window_estimated_vehicles, window_avg_speed_mps=t.window_avg_speed_mps,
+        window_avg_waiting_time_s=t.window_avg_waiting_time_s, worst_approach=t.worst_approach,
+        worst_approach_level=t.worst_approach_level.value if t.worst_approach_level else None,
+        worst_approach_vehicles=t.worst_approach_vehicles,
+    )
+
+
+def _timings_out(timings: tuple[PhaseTiming, ...]) -> list[PhaseTimingOut]:
+    return [
+        PhaseTimingOut(phase=t.phase, approaches=list(t.approaches), green_s=t.green_s, yellow_s=t.yellow_s,
+                       all_red_s=t.all_red_s, red_s=t.red_s)
+        for t in timings
+    ]
+
+
+def control_out(c: ControlStatus) -> ControlStatusOut:
+    return ControlStatusOut(
+        policy=c.policy.value, mode=c.mode.value, base_mode=c.base_mode.value, reason=c.reason.value,
+        headline=c.headline, detail=c.detail, since=c.since,
+        pending=PendingSwitchOut(to_mode=c.pending.to_mode.value, in_s=round(c.pending.in_s, 1),
+                                 condition=c.pending.condition) if c.pending else None,
+        traffic=basis_out(c.traffic),
+        fixed_timing=_timings_out(c.fixed_timing), fixed_cycle_s=c.fixed_cycle_s,
+        active_timing=_timings_out(c.active_timing), active_cycle_s=c.active_cycle_s,
+        algorithm=c.algorithm.value if c.algorithm else None, priority_phase=c.priority_phase,
+    )
+
+
+_HEAD_LIGHT = {"GREEN": "GREEN", "YELLOW": "YELLOW", "ALL_RED": "RED", "FLASHING": "YELLOW", "OFF": "OFF"}
+
+
+def display_out(state: SignalStateOut, *, virtual: bool, plan: SignalPlan, node: IntersectionGeometry) -> SignalDisplayOut:
+    """Per-approach lights from the current phase: its approaches show the phase colour, others red."""
+    light_state = state.state.value if hasattr(state.state, "value") else str(state.state)
+    heads = []
+    for approach in sorted(node.approaches, key=lambda a: a.travel_bearing_deg):
+        phase = plan.phase_for_approach(approach.name)
+        if phase is None or light_state == "OFF":
+            light = "OFF"
+        elif phase.name == state.phase_name:
+            light = _HEAD_LIGHT.get(light_state, "RED")
+        else:
+            light = "YELLOW" if light_state == "FLASHING" else "RED"
+        heads.append(SignalHeadOut(approach=approach.name, bearing_deg=approach.travel_bearing_deg, light=light))
+    mode = state.mode.value if hasattr(state.mode, "value") else str(state.mode)
+    return SignalDisplayOut(
+        source=state.source, virtual=virtual, phase_name=state.phase_name, state=light_state,
+        remaining_s=state.remaining_s, mode=mode, reported_at=state.reported_at, heads=heads,
+    )
+
+
 def _empty_metrics(code: str) -> IntersectionMetrics:
     from traffic_engine.model import CongestionLevel, DataQuality
 
@@ -69,6 +134,8 @@ def intersection_out(
     connected: bool,
     decision: SignalDecisionOut | None,
     computed_at: datetime | None,
+    control: ControlStatusOut | None = None,
+    display_signal: SignalDisplayOut | None = None,
 ) -> IntersectionTrafficOut:
     m = state.metrics if state else _empty_metrics(info.code)
     arrivals = sum(a.expected_arrivals_60s for a in m.approaches)
@@ -113,4 +180,6 @@ def intersection_out(
         connected=connected,
         decision=decision,
         computed_at=computed_at,
+        control=control,
+        display_signal=display_signal,
     )

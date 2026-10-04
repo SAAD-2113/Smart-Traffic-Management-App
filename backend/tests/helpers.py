@@ -11,8 +11,12 @@ LAT, LON0, SPACING = 31.5204, 74.3300, 0.0065  # same placeholder corridor as sc
 INSTALL = "test-install-0001"
 
 
-async def seed_corridor(session_factory, n: int = 4, adaptive: bool = False) -> dict[str, str]:
-    """I1..In on an east-west line with four approaches each and links both ways."""
+async def seed_corridor(session_factory, n: int = 4, adaptive: bool = False, policy: str | None = None) -> dict[str, str]:
+    """I1..In on an east-west line with four approaches each and links both ways.
+
+    policy: AUTO / FIXED / ADAPTIVE; `adaptive=True` is shorthand for ADAPTIVE (default FIXED).
+    """
+    policy = policy or ("ADAPTIVE" if adaptive else "FIXED")
     from traffic_engine.geo import haversine_m
 
     ids: dict[str, str] = {}
@@ -21,7 +25,7 @@ async def seed_corridor(session_factory, n: int = 4, adaptive: bool = False) -> 
         for i in range(n):
             node = await intersection_service.create(db, None, IntersectionCreate(
                 code=f"I{i + 1}", name=f"Junction {i + 1}", latitude=LAT, longitude=LON0 + i * SPACING,
-                radius_m=40, approach_radius_m=250, controller_type="ADAPTIVE" if adaptive else "FIXED",
+                radius_m=40, approach_radius_m=250, controller_type=policy,
             ))
             nodes.append(node)
             ids[node.code] = str(node.id)

@@ -11,11 +11,19 @@ from traffic_engine.control import Phase, SignalDecision, SignalPlan, default_pl
 from app.core.errors import AppError, not_found
 from app.core.time import utcnow
 from app.models.intersection import Intersection
-from app.models.traffic import SignalDecisionRecord, SignalPlanConfig, SignalStateRecord
+from app.core.config import get_settings
+from app.models.traffic import SignalDecisionRecord, SignalModeEvent, SignalPlanConfig, SignalStateRecord
 from app.models.user import User
 from app.repositories import audit_repo
-from app.schemas.signals import PhaseOut, SignalPlanIn, SignalPlanOut, SignalStateReport
-from app.schemas.traffic import PhaseGreenOut, SignalDecisionOut, SignalStateOut
+from app.schemas.signals import (
+    ControlConfigOut,
+    ModeEventOut,
+    PhaseOut,
+    SignalPlanIn,
+    SignalPlanOut,
+    SignalStateReport,
+)
+from app.schemas.traffic import PhaseGreenOut, SignalDecisionOut, SignalStateOut, TrafficBasisOut
 from app.services import network_cache
 from app.services.network_cache import NetworkRefs
 
@@ -285,3 +293,48 @@ async def latest_state(db: AsyncSession, intersection_id: uuid.UUID, code: str) 
         return None
     return SignalStateOut(phase_name=record.phase_name, state=record.state, remaining_s=record.remaining_s,
                           mode=record.mode, reported_at=record.reported_at, source=record.source)
+
+
+# -- control modes -----------------------------------------------------------------------
+
+def control_config() -> ControlConfigOut:
+    th = get_settings().mode_thresholds()
+    window = f"{th.window_s:.0f} s"
+    return ControlConfigOut(
+        enter_level=th.enter_level.value, exit_level=th.exit_level.value, window_s=th.window_s,
+        enter_hold_s=th.enter_hold_s, exit_hold_s=th.exit_hold_s, min_adaptive_s=th.min_adaptive_s,
+        min_data_quality=th.min_data_quality.value, min_vehicles=th.min_vehicles,
+        rules=[
+            f"Congestion is averaged over the last {window}, so normal queues at a red light do not count.",
+            f"Fixed-time -> adaptive: average congestion {th.enter_level.value} or worse with at least "
+            f"{th.min_vehicles:.0f} vehicles for {th.enter_hold_s:.0f} s.",
+            f"Adaptive -> fixed-time: average congestion {th.exit_level.value} (or fewer than "
+            f"{th.min_vehicles:.0f} vehicles) for {th.exit_hold_s:.0f} s, after at least "
+            f"{th.min_adaptive_s:.0f} s in adaptive mode.",
+            f"Not enough data (quality below {th.min_data_quality.value}): fixed-time, the safe default.",
+            "An emergency vehicle about to arrive gets priority in either mode.",
+            "Timings are advisory: the signal controller keeps minimum green, yellow and all-red times.",
+        ],
+    )
+
+
+async def mode_events(db: AsyncSession, intersection_id: uuid.UUID | None, limit: int) -> list[ModeEventOut]:
+    _, refs = await network_cache.load(db)
+    stmt = select(SignalModeEvent).order_by(SignalModeEvent.at.desc(), SignalModeEvent.id.desc()).limit(limit)
+    if intersection_id is not None:
+        if intersection_id not in refs.by_id:
+            raise not_found("Intersection")
+        stmt = stmt.where(SignalModeEvent.intersection_id == intersection_id)
+    result = []
+    for row in await db.scalars(stmt):
+        info = refs.by_id.get(row.intersection_id)
+        try:
+            traffic = TrafficBasisOut.model_validate(row.traffic) if row.traffic else None
+        except ValueError:
+            traffic = None
+        result.append(ModeEventOut(
+            id=row.id, intersection_id=row.intersection_id, intersection_code=info.code if info else "?",
+            at=row.at, policy=row.policy, from_mode=row.from_mode, to_mode=row.to_mode, reason=row.reason,
+            headline=row.headline, detail=row.detail, traffic=traffic,
+        ))
+    return result

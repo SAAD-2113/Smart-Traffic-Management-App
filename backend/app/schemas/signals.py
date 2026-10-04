@@ -5,7 +5,7 @@ from pydantic import AwareDatetime, Field
 
 from app.models.enums import ActuatorType, ControllerType, LightState, SignalMode
 from app.schemas.common import ApiInput, ApiModel
-from app.schemas.traffic import SignalDecisionOut, SignalStateOut
+from app.schemas.traffic import ControlStatusOut, SignalDecisionOut, SignalDisplayOut, SignalStateOut, TrafficBasisOut
 
 
 class PhaseIn(ApiInput):
@@ -60,6 +60,8 @@ class SignalOverviewItem(ApiModel):
     plan: SignalPlanOut
     decision: SignalDecisionOut | None
     state: SignalStateOut | None
+    control: ControlStatusOut | None = None
+    display_signal: SignalDisplayOut | None = None
 
 
 class SignalStateReport(ApiInput):
@@ -80,3 +82,31 @@ class ControllerDecisionsOut(ApiModel):
     server_time: datetime
     decisions: list[SignalDecisionOut]
     plans: list[SignalPlanOut]
+
+
+class ControlConfigOut(ApiModel):
+    """When AUTO intersections switch between fixed-time and adaptive control (from server settings)."""
+
+    enter_level: str
+    exit_level: str
+    window_s: float
+    enter_hold_s: float
+    exit_hold_s: float
+    min_adaptive_s: float
+    min_data_quality: str
+    min_vehicles: float
+    rules: list[str]
+
+
+class ModeEventOut(ApiModel):
+    id: int
+    intersection_id: uuid.UUID
+    intersection_code: str
+    at: datetime
+    policy: str
+    from_mode: str
+    to_mode: str
+    reason: str
+    headline: str
+    detail: str
+    traffic: TrafficBasisOut | None

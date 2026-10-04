@@ -32,7 +32,7 @@ class Intersection(TimestampMixin, Base):
         enum_column(IntersectionStatus), nullable=False, default=IntersectionStatus.ACTIVE
     )
     controller_type: Mapped[ControllerType] = mapped_column(
-        enum_column(ControllerType), nullable=False, default=ControllerType.FIXED
+        enum_column(ControllerType), nullable=False, default=ControllerType.AUTO
     )
     actuator: Mapped[ActuatorType] = mapped_column(
         enum_column(ActuatorType), nullable=False, default=ActuatorType.DISPLAY_ONLY
