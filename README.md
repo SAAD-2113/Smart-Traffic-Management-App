@@ -5,9 +5,13 @@ management engine, with a driver app, a traffic-manager dashboard, SUMO simulati
 
 - **Driver / vehicle app (Android):** register a vehicle, get a Vehicle ID, start/stop GPS tracking with
   an offline queue, trip history, and emergency mode for authorized emergency vehicles.
-- **Manager app (Android and web):** live dashboard, live map, vehicles, intersections with
-  observed / calculated / estimated traffic metrics, traffic analysis, emergency authorizations and
-  events, signal plans and advisory decisions, history, demo simulation controls.
+- **Manager app (Android and web):** a traffic control centre dashboard that shows each
+  intersection's signal mode: fixed-time by default, switched automatically to adaptive timing when
+  congestion is significant. Each status gives the reason, the traffic behind it and the calculated
+  green/yellow/red against the fixed plan. The live map shows the signal lights at every
+  intersection. Also: vehicles, intersections with observed / calculated / estimated traffic
+  metrics, traffic analysis, emergency authorizations and events, signal plans, mode-change history,
+  and demo simulation controls including a simulated rush hour.
 - **Backend:** FastAPI + PostgreSQL. Server-side validation of every packet, roles, emergency
   authorization, a traffic engine that runs every 2 s, a WebSocket feed for dashboards, and an API for
   machine clients (SUMO bridge, Raspberry Pi controllers).
@@ -39,13 +43,13 @@ data (demo fleet, SUMO) is always labelled as such and kept separate from real v
 cd backend; copy .env.example .env      # set JWT_SECRET and DATABASE_URL (SQLite works for a demo)
 uv sync; uv run alembic upgrade head
 uv run python -m scripts.create_user --role MANAGER --email manager@example.com --name "Traffic Manager"
-uv run python -m scripts.seed_intersections --adaptive
+uv run python -m scripts.seed_intersections          # policy AUTO: fixed-time, adaptive when congested
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Install `dist/smart-traffic-v1.0.1-arm64-v8a.apk` (or the universal `dist/smart-traffic-v1.0.1.apk`) on an Android phone on the same Wi-Fi, tap **Server** on the
+Install `dist/smart-traffic-v1.1.0-arm64-v8a.apk` (or the universal `dist/smart-traffic-v1.1.0.apk`) on an Android phone on the same Wi-Fi, tap **Server** on the
 login screen and enter `http://<PC IP>:8000`. For a cloud server, enter its `https://` address instead.
 
 ## Tests
 
-`traffic_engine`: 42 · `backend`: 109 · `mobile`: 26 (see `docs/TESTING.md`).
+`traffic_engine`: 56 · `backend`: 116 · `mobile`: 33 (see `docs/TESTING.md`).

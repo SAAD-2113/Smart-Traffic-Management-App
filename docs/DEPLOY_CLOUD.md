@@ -65,8 +65,15 @@ Everyone else (drivers) enters the same address and taps **Create account**.
 ## Everyday use
 
 - Nothing to start or stop. If the server was asleep, the first screen takes up to a minute.
-- New code pushed to the branch is deployed automatically.
-- Demo traffic: **More → Settings → Demo simulation → Start simulation** in the manager app.
+- New code pushed to the branch is deployed automatically. Database changes are applied on start-up.
+  The 1.1 update moves intersections that were `ADAPTIVE` to the new `AUTO` policy (fixed-time
+  until congestion is significant, then adaptive). Install the matching APK on the phones.
+- Demo traffic: **More → Settings → Demo simulation → Start simulation** in the manager app. To see
+  the fixed-time / adaptive switch, start it with 50 or more vehicles. Then pick an intersection under
+  **Simulate rush hour** and tap **Start rush hour**. It switches to adaptive within a few minutes
+  and returns to fixed-time after the rush hour ends.
+- Mode-switching thresholds can be changed under **Environment** with the `CONTROL_*` variables
+  (listed in `backend/.env.example`).
 - Change your password in the app (**More → Settings → Change password**). Changing
   `BOOTSTRAP_ADMIN_PASSWORD` later does **not** change an existing account.
 - Password-reset emails are not configured on this prototype server; reset links appear in the
@@ -89,7 +96,7 @@ docker run -p 8000:8000 \
   -e DATABASE_URL='postgresql://user:password@host:5432/dbname' \
   -e JWT_SECRET='<at least 32 random characters>' \
   -e BOOTSTRAP_ADMIN_EMAIL='manager@example.com' -e BOOTSTRAP_ADMIN_PASSWORD='<password>' \
-  -e SEED_CORRIDOR=adaptive -e DEMO_MODE=true \
+  -e SEED_CORRIDOR=auto -e DEMO_MODE=true \
   smart-traffic-backend
 ```
 

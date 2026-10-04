@@ -139,14 +139,64 @@ history only. See `docs/ARCHITECTURE.md` for the complete rules.
 | GET | `/manager/emergency/events` · POST `/manager/emergency/events/{id}/end` | Emergency log; end one manually. |
 | GET / POST / PATCH / DELETE | `/intersections[/{id}]` | DELETE deactivates (history is kept). |
 | POST | `/intersections/{id}/approaches` · `/intersections/{id}/links` | Approach geometry and inter-intersection links. |
-| GET | `/traffic/overview` | Dashboard figures (vehicles, speeds, congestion, system status). |
-| GET | `/traffic/intersections[/{id}]` | Per intersection and per approach: observed, calculated and estimated metrics, data quality, emergencies, signal state and the current decision. |
+| GET | `/traffic/overview` | Dashboard figures (vehicles, speeds, congestion, system status) and how many intersections are in each mode (`fixedTimeIntersections`, `adaptiveIntersections`, `emergencyPriorityIntersections`). |
+| GET | `/traffic/intersections[/{id}]` | Per intersection and per approach: observed, calculated and estimated metrics, data quality, emergencies, signal state, the current decision, `control` and `displaySignal` (see below). |
 | GET | `/traffic/intersections/{id}/history` · `/traffic/history` | Time series (`hours`, `bucketS`). |
 | GET | `/emergency/active` | Active emergencies with position and nearest intersection. |
-| GET | `/signals/overview` | Plan, decision and reported state for every intersection. |
+| GET | `/signals/overview` | Plan, decision, reported state, `control` and `displaySignal` for every intersection. |
+| GET | `/signals/control-config` | The mode-switching thresholds in force (`enterLevel`, `exitLevel`, `windowS`, `enterHoldS`, `exitHoldS`, `minAdaptiveS`, `minDataQuality`, `minVehicles`) and the rules in words. |
+| GET | `/signals/mode-events` | Mode changes, newest first. `intersectionId` (optional), `limit` (1-200, default 50). Each event has `fromMode`, `toMode`, `reason`, `headline`, `detail` and the `traffic` figures behind it. |
 | GET / PUT | `/intersections/{id}/signal-plan` | Phase plan (min/max/fixed green, yellow, all-red). Validated for safety limits. |
 | GET | `/intersections/{id}/signal-decisions` | Decision log. |
 | GET | `/demo/status` · POST `/demo/start` · `/demo/stop` | Simulated fleet. Only when `DEMO_MODE=true`; refused in production. |
+| POST | `/demo/surge` · `/demo/surge/stop` | Simulated rush hour: `{"intersectionCode": "I2", "durationS": 480}` (60-1800 s) sends most new simulated trips through that intersection, so congestion builds there and the mode switch can be demonstrated. 409 `DEMO_NOT_RUNNING` without a running demo. |
+
+#### Signal control status (`control`) and lights (`displaySignal`)
+
+`controllerType` on an intersection is its **control policy**: `AUTO` (default; fixed-time
+until congestion is significant, then adaptive), `FIXED` or `ADAPTIVE`. Migration 0003 turns
+existing `ADAPTIVE` intersections into `AUTO`.
+
+```json
+"control": {
+  "policy": "AUTO", "mode": "ADAPTIVE", "baseMode": "ADAPTIVE",
+  "reason": "HIGH_CONGESTION", "headline": "High congestion detected",
+  "detail": "Average congestion is HIGH (on average 42 vehicles at 12 km/h over the last 60 s). ...",
+  "since": "2026-10-04T12:00:00Z",
+  "pending": null,
+  "traffic": {"congestionLevel": "HIGH", "averagedLevel": "HIGH", "dataQuality": "HIGH",
+              "vehicleCount": 40, "windowS": 60, "windowVehicleCount": 42.0,
+              "windowAvgSpeedMps": 3.3, "windowAvgWaitingTimeS": 21.0,
+              "worstApproach": "Northbound", "worstApproachLevel": "SEVERE", "worstApproachVehicles": 14, "...": "..."},
+  "fixedTiming":  [{"phase": "Northbound+Southbound", "approaches": ["Northbound", "Southbound"],
+                    "greenS": 30, "yellowS": 3, "allRedS": 2, "redS": 33}, "..."],
+  "fixedCycleS": 66,
+  "activeTiming": [{"phase": "Northbound+Southbound", "greenS": 48, "yellowS": 3, "allRedS": 2, "redS": 25, "...": "..."}, "..."],
+  "activeCycleS": 76,
+  "algorithm": "DEMAND_PROPORTIONAL", "priorityPhase": null
+}
+```
+
+- `mode` is `FIXED_TIME`, `ADAPTIVE` or `EMERGENCY_PRIORITY`.
+- `reason` is one of `NORMAL_TRAFFIC`, `CONGESTION_DETECTED`, `HIGH_CONGESTION`,
+  `SEVERE_CONGESTION`, `CONGESTION_EASING`, `CONGESTION_CLEARED`, `INSUFFICIENT_DATA`,
+  `MANUAL_FIXED`, `MANUAL_ADAPTIVE` or `EMERGENCY_VEHICLE`.
+- `pending` announces a switch that is on its way, for example
+  `{"toMode": "ADAPTIVE", "inS": 12.0, "condition": "if congestion persists"}`.
+- `redS` is the cycle minus the phase's own green and yellow.
+
+```json
+"displaySignal": {
+  "source": "VIRTUAL", "virtual": true, "phaseName": "Northbound+Southbound", "state": "GREEN",
+  "remainingS": 12.0, "mode": "ADAPTIVE", "reportedAt": "...",
+  "heads": [{"approach": "Northbound", "bearingDeg": 0, "light": "GREEN"}, "..."]
+}
+```
+
+- `source` is the reporting controller (`SIMULATOR`, `SUMO`, ...). It is `VIRTUAL` for a
+  display-only intersection without a connected controller, where the server runs the plan
+  only to show the lights.
+- `light` is `GREEN`, `YELLOW`, `RED` or `OFF`. `OFF` means the approach is not in any phase.
 
 ### Admin (role `ADMIN`)
 
@@ -177,7 +227,8 @@ minimum green, yellow or all-red. Without a valid decision it runs its local fix
 2. The server answers `{"type": "hello", "serverTime": ..., "role": ...}` and the latest snapshot.
 3. After every engine cycle (about every 2 s): `{"type": "snapshot", ...}` with the overview,
    intersections and live vehicles.
-4. Emergency events as they happen: `{"type": "event", "event": "EMERGENCY_STARTED" | ...}`.
+4. Emergency events and mode changes as they happen: `{"type": "event", "event": "EMERGENCY_STARTED" | "MODE_CHANGED" | ...}`.
+   `MODE_CHANGED` carries `intersectionId`, `intersectionCode`, `fromMode`, `toMode`, `reason`, `headline` and `detail`.
 5. The client may send `{"type": "ping"}`; the server answers `{"type": "pong"}`.
 
 The connection closes with code 4401 if authentication fails or the token expires (4403 for a non-manager); the app then

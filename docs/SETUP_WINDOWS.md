@@ -81,14 +81,14 @@ uv sync
 uv run alembic upgrade head
 uv run python -m scripts.create_user --role ADMIN --email admin@example.com --name "System Admin"
 uv run python -m scripts.create_user --role MANAGER --email manager@example.com --name "Traffic Manager"
-uv run python -m scripts.seed_intersections --adaptive
+uv run python -m scripts.seed_intersections
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 `create_user` asks for the password (it is never passed on the command line). `seed_intersections`
 creates the placeholder corridor I1-I4; replace the coordinates with your real intersections in the
-manager app (Intersections) before collecting real data. `--adaptive` puts them in adaptive (advisory)
-mode; without it they run fixed-time.
+manager app (Intersections) before collecting real data. They use the automatic
+policy: fixed-time while traffic is normal, adaptive (advisory) timing while congestion is significant.
 
 Check: open http://localhost:8000/docs.
 
@@ -115,7 +115,7 @@ backend over HTTPS with a tunnel (e.g. Cloudflare Tunnel) and start uvicorn with
 
 ## 5. Install the Android app
 
-**Provided APK:** copy `dist/smart-traffic-v1.0.1-arm64-v8a.apk` (most phones) or the universal `dist/smart-traffic-v1.0.1.apk` to the phone and open it (allow "Install unknown apps"
+**Provided APK:** copy `dist/smart-traffic-v1.1.0-arm64-v8a.apk` (most phones) or the universal `dist/smart-traffic-v1.1.0.apk` to the phone and open it (allow "Install unknown apps"
 for your file manager when asked). Android 7.0 or newer.
 
 **Build it yourself:**

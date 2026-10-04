@@ -213,7 +213,7 @@ approves.
 | View traffic metrics, history, signal state, emergencies | – | ✓ | ✓ |
 | Suspend / reactivate a vehicle (with reason, audited) | – | ✓ | ✓ |
 | Approve / reject / revoke emergency authorisation; force-end an emergency | – | ✓ | ✓ |
-| Configure intersections, approaches, links, signal plans, FIXED/ADAPTIVE mode | – | ✓ | ✓ |
+| Configure intersections, approaches, links, signal plans, control policy (AUTO/FIXED/ADAPTIVE) | – | ✓ | ✓ |
 | Start/stop the demo simulation (DEMO_MODE only) | – | ✓ | ✓ |
 | See owner identity of a vehicle | own | ✗ | ✓ |
 | See registration number | own | only in the authorisation review | ✓ |
@@ -245,8 +245,10 @@ end-user accounts.
    DEPARTURE), an approach (by heading) or a link between intersections.
 7. **Aggregate.** Every 2 s the runner builds per-approach and per-intersection metrics and
    the network state. Every 30 s it saves a snapshot to `traffic_metrics`.
-8. **Decide.** For intersections in ADAPTIVE mode, the configured controller produces an
-   advisory decision with `validUntil`. Actuators poll for it and report their actual state.
+8. **Decide.** The mode state machine (see "Signal-control modes" below) picks fixed-time,
+   adaptive or emergency priority for each intersection and explains why. In adaptive or
+   emergency mode the controller produces an advisory decision with `validUntil`. Actuators
+   poll for it and report their actual state.
 9. **Present.** A WebSocket pushes a snapshot (vehicles, intersections, emergencies, summary)
    to manager apps after each cycle. REST endpoints serve the same data for polling and
    history.
@@ -421,7 +423,11 @@ Controllers that are included (in `traffic_engine.control`):
 - **DemandProportionalController** — *Webster-style* timing, *not* claimed optimal.
   - Phase demand = estimated queue + upstream arrivals (60 s), divided by an assumed
     saturation flow of 1 800 veh/h/lane.
-  - Cycle C = (1.5 L + 5) / (1 − Y), clamped to the plan's [min, max] cycle.
+  - Cycle C = (1.5 L + 5) / (1 − Y), clamped to the plan's [min, max] cycle and never
+    shorter than the fixed plan's cycle. Adaptive timing moves green to the busier phase
+    and lengthens the cycle under heavy demand; it does not cut the cycle below the
+    configured plan. Plain Webster can do that for light demand, and then even the
+    congested phase would get less green than fixed-time.
   - Green is split in proportion to each phase's flow ratio, clamped to its min/max green.
   - Green feeding a SEVERE downstream intersection is capped (gating).
   - With data quality NONE it falls back to the fixed plan and says so in `reason`.
@@ -431,6 +437,90 @@ Controllers that are included (in `traffic_engine.control`):
 Every decision carries `algorithm`, `cycleS`, `phaseGreens[]`, `priorityPhase`, `reason`,
 the `inputs` it used, and `validUntil`, 15 s after creation. An actuator ignores a decision
 after `validUntil` and runs its local fixed plan instead.
+
+## Signal-control modes: fixed-time and adaptive
+
+Each intersection has a **control policy** (`intersections.controller_type`):
+
+| Policy | Behaviour |
+|---|---|
+| `AUTO` (default) | Fixed-time while traffic is normal; adaptive timing while congestion is significant. |
+| `FIXED` | Always the configured fixed-time plan (the manager's choice). |
+| `ADAPTIVE` | Always calculated timing (the manager's choice). |
+
+Emergency priority overrides every policy while an authorized emergency vehicle approaches.
+
+The **mode** in force is one of `FIXED_TIME`, `ADAPTIVE` or `EMERGENCY_PRIORITY`. Under `AUTO` it
+comes from a state machine in `traffic_engine.control.modes.ModeController`. The engine runs it
+every cycle for every active intersection:
+
+```
+                      Traffic data (vehicle observations)
+                                    |
+                                    v
+        Calculate congestion per intersection (each cycle), then average it
+        over the last CONTROL_WINDOW_S seconds (rank mean of the levels)
+                                    |
+                +-------------------+--------------------+
+                |                                        |
+       Normal (below HIGH, or fewer           Congested (average >= HIGH and
+       than CONTROL_MIN_VEHICLES)             >= CONTROL_MIN_VEHICLES vehicles)
+                |                                        |
+                v                                        v
+        FIXED_TIME mode            held for CONTROL_ENTER_HOLD_S? -- no --> stay FIXED_TIME
+        (configured plan)                        | yes                  ("Congestion building",
+                ^                                v                       countdown shown)
+                |                         ADAPTIVE mode
+                |                (green calculated from demand)
+                |                                |
+                |      average <= LOW (or too few vehicles) for CONTROL_EXIT_HOLD_S
+                +------ and at least CONTROL_MIN_ADAPTIVE_S in adaptive ----------+
+                        ("Congestion cleared")        otherwise stay ADAPTIVE
+                                                      ("Congestion easing")
+
+  Data quality below CONTROL_MIN_DATA_QUALITY  ->  FIXED_TIME ("Not enough traffic data")
+  Emergency vehicle with ETA <= 60 s           ->  EMERGENCY_PRIORITY, then back to the base mode
+```
+
+Design choices:
+- **Hysteresis.** The machine enters adaptive at HIGH and leaves at LOW, with hold times and a
+  minimum dwell, so the mode does not flap when traffic hovers around a threshold.
+- **Averaging.** It switches on the averaged level, not on one noisy sample, and it ignores a
+  few slow vehicles ("Light traffic": slow but fewer than `CONTROL_MIN_VEHICLES`).
+- **Fixed-time is the safe default.** Fixed-time is used at start-up, without enough data,
+  and whenever the adaptive controller has no demand data.
+- **Configuration.** The fixed timings are the intersection's signal plan in the database,
+  edited from the app. The thresholds are environment variables (`CONTROL_*` in
+  `backend/.env.example`), validated at start-up and shown in the app
+  (`GET /signals/control-config`).
+
+Every status carries the reason with it. The app shows these fields; it does not work out
+the mode itself:
+- `mode`, `policy`, `reason` (enum), `headline` and `detail`, for example "High congestion
+  detected" with "Average congestion is HIGH (on average 42 vehicles at 12 km/h over the last
+  60 s) …";
+- `pending`, for example "switching to adaptive in 12 s if congestion persists";
+- `traffic`: the current and window-averaged vehicles, speed, waiting time and congestion,
+  plus the worst approach;
+- `fixedTiming` and `activeTiming` per phase (green, yellow, all-red, and red = cycle − green
+  − yellow), with both cycle lengths, so the app can show "Green 48 s, +18 vs fixed".
+
+Each mode change is stored in `signal_mode_events`, with the traffic figures behind it. It is
+also pushed live as a `MODE_CHANGED` event. Events are kept for 90 days.
+
+### Signal lights on the map
+
+`displaySignal` on each intersection reports what the lights show: the phase, its state
+(green, yellow or all-red), the seconds remaining, and one head per approach. The phase's
+approaches show the phase colour and the others show red.
+- **Connected controller.** The source is that controller's latest report (simulator,
+  SUMO, or a future hardware controller).
+- **No connected controller (display-only).** The server runs a **virtual controller** that
+  steps through the same decisions, so the map still shows lights. These are labelled
+  `VIRTUAL` ("Lights: virtual controller") and are never presented as street hardware.
+
+The app places each head on the side its traffic arrives from (travel bearing + 180°). It
+counts down on the server's clock.
 
 ## Inter-intersection coordination
 

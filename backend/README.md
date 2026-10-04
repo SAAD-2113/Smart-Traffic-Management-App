@@ -8,7 +8,8 @@ What runs inside one process:
 - the REST API (auth, vehicles, tracking, telemetry, emergency, intersections, traffic, signals, admin,
   controller clients);
 - the **traffic runner**: every `TRAFFIC_CYCLE_S` (2 s) it builds the network state from live telemetry
-  and machine-client observations with `traffic_engine`, stores advisory signal decisions for ADAPTIVE
+  and machine-client observations with `traffic_engine`, switches each intersection between fixed-time and
+  adaptive control (with the reason), stores advisory signal decisions for adaptive
   intersections, persists metrics every 30 s and applies data retention;
 - the **live hub**: pushes a snapshot to manager dashboards over `/api/v1/live/ws` after every cycle,
   and emergency events after they are committed;
@@ -68,12 +69,13 @@ For a quick demo without PostgreSQL, set `DATABASE_URL=sqlite+aiosqlite:///./sma
 ```powershell
 uv run python -m scripts.create_user --role ADMIN --email admin@example.com --name "System Admin"
 uv run python -m scripts.create_user --role MANAGER --email manager@example.com --name "Traffic Manager"
-uv run python -m scripts.seed_intersections --adaptive
+uv run python -m scripts.seed_intersections
 ```
 
 `create_user` prompts for the password (or reads it from stdin with `--password-stdin`).
-`--adaptive` creates the intersections in ADAPTIVE mode (the engine publishes advisory decisions);
-without it they run FIXED plans. The seeded I1-I4 coordinates are placeholders. Update them with your real junctions
+The intersections get the `AUTO` policy: the fixed-time plan while traffic is normal, adaptive
+(advisory) timing while congestion is significant. `--policy fixed` or `--policy adaptive` fixes the
+mode instead; the manager can change it per intersection in the app. The seeded I1-I4 coordinates are placeholders. Update them with your real junctions
 (`PATCH /api/v1/intersections/{id}`) before any real data collection.
 
 ## 6. Run
@@ -107,15 +109,19 @@ in the code. Important ones:
 | `TRAFFIC_ENGINE_ENABLED`, `TRAFFIC_CYCLE_S` | true, 2 | the traffic runner |
 | `LIVE_WINDOW_S`, `BACKFILL_MAX_AGE_S` | 15, 600 | what counts as live; how old an offline packet may be |
 | `USABLE_ACCURACY_M` | 50 | worse fixes are stored but not used for metrics |
-| `TELEMETRY_RETENTION_DAYS`, `SIMULATED_TELEMETRY_RETENTION_HOURS` | 30, 24 | retention |
+| `TELEMETRY_RETENTION_DAYS`, `SIMULATED_TELEMETRY_RETENTION_HOURS` | 30, 1 | retention |
 | `EMERGENCY_STALE_S`, `EMERGENCY_MAX_DURATION_S` | 120, 3600 | automatic end of an emergency |
+| `CONTROL_ENTER_LEVEL`, `CONTROL_EXIT_LEVEL` | HIGH, LOW | averaged congestion that switches an AUTO intersection to adaptive, and back to fixed-time |
+| `CONTROL_WINDOW_S`, `CONTROL_MIN_VEHICLES` | 60, 8 | averaging window; fewer vehicles than this never count as congestion |
+| `CONTROL_ENTER_HOLD_S`, `CONTROL_EXIT_HOLD_S`, `CONTROL_MIN_ADAPTIVE_S` | 20, 60, 120 | how long a condition must last before switching (prevents flapping) |
+| `CONTROL_MIN_DATA_QUALITY` | MEDIUM | below this, fixed-time is used |
 
 ## Scripts
 
 | Script | Purpose |
 |---|---|
 | `scripts.create_user` | Create an ADMIN or MANAGER account |
-| `scripts.seed_intersections [--adaptive]` | Placeholder I1-I4 corridor with approaches and links |
+| `scripts.seed_intersections [--policy auto\|fixed\|adaptive]` | Placeholder I1-I4 corridor with approaches and links |
 | `scripts.export_research_dataset --hours 24 --out data.csv` | Anonymised telemetry export (see `docs/SECURITY_AND_PRIVACY.md`) |
 | `scripts.bootstrap` | Start-up setup for hosted servers from `BOOTSTRAP_ADMIN_EMAIL`/`_PASSWORD` and `SEED_CORRIDOR` (run by `start.sh`) |
 

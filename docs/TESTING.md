@@ -3,9 +3,9 @@
 ## Running the automated tests
 
 ```powershell
-cd traffic_engine;  uv run --group dev pytest        # 42 tests, pure Python
-cd backend;         uv run pytest                    # 109 tests, throwaway SQLite per test (no Docker needed)
-cd mobile;          flutter analyze; flutter test    # 26 tests
+cd traffic_engine;  uv run --group dev pytest        # 56 tests, pure Python
+cd backend;         uv run pytest                    # 116 tests, throwaway SQLite per test (no Docker needed)
+cd mobile;          flutter analyze; flutter test    # 33 tests
 ```
 
 CI (`.github/workflows/ci.yml`) runs all three suites, then builds the Android APK and the web
@@ -25,7 +25,10 @@ dashboard on every push.
 | Traffic processing: mapping to approach/core/departure/link, no data = UNKNOWN, single-probe scaling labelled low quality, waiting time, detector counts not scaled, congestion thresholds | 17 | `traffic_engine/tests/test_mapping.py`, `test_aggregation.py` |
 | Multi-intersection: upstream arrivals, downstream gating, links with ETA | in `test_control.py`, `test_mapping.py` | |
 | Signal control: plan validation (unsafe values rejected), fixed fallback with reason, demand-proportional within limits, emergency priority near / not far, decision expiry | 12 | `traffic_engine/tests/test_control.py`, `backend/tests/test_traffic.py` |
-| Virtual signals: min green kept before priority, expired decision ignored | 3 | `test_simulation.py` |
+| Fixed-time / adaptive state machine: fixed by default, switch only after congestion holds, hysteresis and minimum dwell on the way back, few slow vehicles do not count, insufficient data falls back to fixed, manual FIXED/ADAPTIVE policies, emergency override, timing fields (red = cycle − green − yellow), threshold validation | 11 | `traffic_engine/tests/test_modes.py` |
+| Adaptive timing never shortens the cycle below the fixed plan and moves green to the busy phase | 1 | `test_control.py` |
+| Mode switching through the backend: AUTO policy end to end, control status in the API, stored mode events and `MODE_CHANGED`, control-config, display signals (connected and virtual), demo rush hour | 7 | `backend/tests/test_control_modes.py` |
+| Virtual signals: min green kept before priority, expired decision ignored; rush-hour surge routes trips through one intersection | 3 + 2 | `test_simulation.py` |
 | Controller clients: invalid key, scope, SUMO observations feed the engine, only SUMO may flag emergencies | 11 | `test_controller_clients.py`, `test_controller_io.py` |
 | Live dashboard WebSocket: auth message required, end users refused, snapshots delivered | 3 | `test_live_ws.py` |
 | Demo simulation: refused when disabled, runs through the real pipeline, API | 4 + 5 | `test_demo.py`, `traffic_engine/tests/test_simulation.py` |
@@ -34,12 +37,19 @@ dashboard on every push.
 | Mobile: offline queue, ordered delivery, backfill window, backoff, errors keep packets, closed session stops | 9 | `upload_policy_test.dart`, `tracking_controller_test.dart` |
 | Mobile: validators, server address, unit conversion | 8 | `config_and_units_test.dart` |
 | Mobile UI: hold-to-confirm, "no data" badge | 2 | `widget_smoke_test.dart` |
+| Mobile UI: mode badges labelled, control card shows mode/reason/traffic/calculated green and a pending switch, signal countdown on the server clock, map signal heads on the arrival side | 7 | `signal_widgets_test.dart` |
 
 ## End-to-end checks done during development
 
 - **Demo pipeline:** backend with `DEMO_MODE=true`, the manager app (web build) driven in headless
   Chromium: login, dashboard, live map, intersections, signals, traffic analysis, history, demo start/stop,
   emergency approval.
+- **Fixed-time / adaptive switching:** demo with 60 vehicles plus a rush hour at I2 (Settings → Demo →
+  Simulate rush hour). I2 showed "Congestion building" with a countdown, switched to ADAPTIVE ("High
+  congestion detected", calculated greens with the change against the fixed plan), stayed adaptive
+  while congestion eased and returned to FIXED-TIME after the rush hour. The switches appeared in the
+  dashboard log, on the live map (hub colour) and as notifications. Normal demo traffic (30 vehicles)
+  stays fixed-time.
 - **SUMO:** `sumo_bridge/bridge.py` against the running backend (4-junction corridor, 260 simulated
   seconds): SUMO vehicles appear as source `SUMO` with HIGH data quality, adaptive decisions are served,
   the bridge reports light states (connected), and the SUMO ambulance is detected on the Eastbound

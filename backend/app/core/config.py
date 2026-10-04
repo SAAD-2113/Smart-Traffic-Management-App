@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     simulated_telemetry_retention_hours: int = Field(default=1, ge=1, le=24 * 365)
 
     # Fixed-time / adaptive switching for AUTO intersections (traffic_engine/control/modes.py).
-    # Congestion is averaged over control_window_s; see docs/ARCHITECTURE.md "Signal control modes".
+    # Congestion is averaged over control_window_s; see docs/ARCHITECTURE.md "Signal-control modes".
     control_enter_level: Literal["MODERATE", "HIGH", "SEVERE"] = "HIGH"
     control_exit_level: Literal["LOW", "MODERATE", "HIGH"] = "LOW"
     control_window_s: float = Field(default=60.0, ge=10, le=600)

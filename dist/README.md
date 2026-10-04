@@ -1,17 +1,28 @@
 # Android APK
 
-Smart Traffic app 1.0.1 (versionCode 2), package `com.fyp.smart_traffic`. Same app in three files:
+Smart Traffic app 1.1.0 (versionCode 3), package `com.fyp.smart_traffic`. Same app in three files:
 
 | File | For | SHA-256 |
 |---|---|---|
-| `smart-traffic-v1.0.1-arm64-v8a.apk` (14.9 MB) | almost all current phones (64-bit ARM) | `df0ba28ff9f8c8ec6551c29f5f10cc136619187996447df893c804bb8b58a3e6` |
-| `smart-traffic-v1.0.1-armeabi-v7a.apk` (14.5 MB) | older 32-bit phones | `a8b1a1a34dab1a88e9085f965408a3d95a730931ea4b1441f54e6118632c2aee` |
-| `smart-traffic-v1.0.1.apk` (34.1 MB) | universal: both of the above plus x86_64 (emulator) | `f54de4811d71fe1b791be7a8756e5c910169a4b86158d25047cabff630de0de5` |
+| `smart-traffic-v1.1.0-arm64-v8a.apk` (15.0 MB) | almost all current phones (64-bit ARM) | `db6e0e81d844bd06dfa90638b8f88e26d9af5bfbb1f7b22ac9f8d387c7b5d1c4` |
+| `smart-traffic-v1.1.0-armeabi-v7a.apk` (14.5 MB) | older 32-bit phones | `f099d3ea94b7b4cfb1df2b491c0dd2e120b2f440b47faa0b055ee06a97a88c67` |
+| `smart-traffic-v1.1.0.apk` (34.3 MB) | universal: both of the above plus x86_64 (emulator) | `c0b9a93215f965d2542ea45bfec128f681402fc94ada26b13433e3a7b040206b` |
 
 If unsure, use the universal APK.
 
-1.0.1 works with a cloud-hosted server (`docs/DEPLOY_CLOUD.md`): it waits up to a minute for a sleeping
-free-tier server and says so. It installs over 1.0.0 as an update (same signing key); your data stays.
+What's new in 1.1.0:
+- **Traffic control dashboard.** Each intersection runs fixed-time while traffic is normal. When
+  congestion is significant it switches to adaptive timing. The app shows the mode, the reason, the
+  traffic behind it (vehicles, average speed, waiting time, congestion), and the green, yellow and
+  red times against the fixed plan. Mode changes are logged and announced.
+- **Signal lights on the live map** at every intersection: one head per approach, a hub coloured
+  by mode, and a countdown.
+- **Rush-hour simulation** in Settings → Demo, so the switch can be demonstrated.
+- A refreshed look (gradient header, cards, light and dark themes).
+
+It works with the cloud server (`docs/DEPLOY_CLOUD.md`). It installs over 1.0.x as an update
+(same signing key), and your data stays. Use it with a server running the same code; Render
+updates itself from the branch.
 
 | | |
 |---|---|
