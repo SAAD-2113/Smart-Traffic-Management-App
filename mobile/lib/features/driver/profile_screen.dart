@@ -11,6 +11,7 @@ import '../auth/auth_controller.dart';
 import '../auth/server_settings_sheet.dart';
 import 'driver_controller.dart';
 import 'vehicle_setup_screen.dart';
+import '../../mode/switch_mode.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -119,6 +120,8 @@ class ProfileScreen extends StatelessWidget {
             ),
           ]),
         ),
+        const SizedBox(height: 8),
+        const Card(child: SwitchModeTile()),
         const SizedBox(height: 16),
         FilledButton.tonalIcon(
           style: FilledButton.styleFrom(foregroundColor: StatusColors.danger),

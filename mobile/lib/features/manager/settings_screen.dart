@@ -9,6 +9,7 @@ import '../../widgets/common.dart';
 import '../auth/auth_controller.dart';
 import '../driver/profile_screen.dart' show showChangePassword;
 import 'live_controller.dart';
+import '../../mode/switch_mode.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -57,6 +58,8 @@ class SettingsScreen extends StatelessWidget {
             ),
           ]),
         ),
+        const SectionHeader('App mode'),
+        const Card(child: SwitchModeTile()),
         const SectionHeader('Account'),
         Card(
           child: Column(children: [

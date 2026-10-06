@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Hardware mode: find the ESP32's Wi-Fi network (it has no internet) and keep the app's
+         connection on it instead of mobile data. Normal permission, granted at install. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Vehicle tracking. Precise location while tracking is running; no background-location
          permission is needed because tracking runs as a visible foreground service. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />

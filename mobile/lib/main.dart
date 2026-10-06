@@ -1,16 +1,13 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'app.dart';
-import 'core/auth/token_store.dart';
 import 'core/config/app_config.dart';
-import 'core/network/api_client.dart';
-import 'data/local/telemetry_queue.dart';
+import 'core/storage/kv_store.dart';
+import 'mode/mode_root.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final config = await AppConfig.load();
-  final api = ApiClient(config, TokenStore());
-  final TelemetryQueue queue = kIsWeb ? MemoryTelemetryQueue() : await SqliteTelemetryQueue.open();
-  runApp(SmartTrafficApp(config: config, api: api, queue: queue));
+  // Local settings only; nothing here touches the network.
+  final store = await KeyValueStore.open();
+  final config = await AppConfig.load(store);
+  runApp(ModeRoot(store: store, config: config));
 }

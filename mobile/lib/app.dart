@@ -14,6 +14,7 @@ import 'features/driver/driver_controller.dart';
 import 'features/driver/driver_shell.dart';
 import 'features/manager/live_controller.dart';
 import 'features/manager/manager_shell.dart';
+import 'mode/switch_mode.dart';
 import 'services/location_service.dart';
 import 'services/tracking_controller.dart';
 import 'widgets/common.dart';
@@ -107,7 +108,14 @@ class _AuthGate extends StatelessWidget {
     _lastStatus = auth.status;
     switch (auth.status) {
       case AuthStatus.unknown:
-        return const Scaffold(body: LoadingView(label: 'Connecting…'));
+        return const Scaffold(
+          body: SafeArea(
+            child: Stack(children: [
+              LoadingView(label: 'Connecting…'),
+              Positioned(top: 8, right: 8, child: SwitchModeButton()),
+            ]),
+          ),
+        );
       case AuthStatus.signedOut:
         return const LoginScreen();
       case AuthStatus.signedIn:

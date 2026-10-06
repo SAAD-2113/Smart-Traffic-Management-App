@@ -5,6 +5,7 @@ import '../../core/config/app_config.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/validators.dart';
+import '../../mode/switch_mode.dart';
 import '../../widgets/brand.dart';
 import '../../widgets/common.dart';
 import 'auth_controller.dart';
@@ -123,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 20),
                           GradientButton(label: 'Sign in', icon: Icons.login, busy: _busy, onPressed: _submit),
                           const SizedBox(height: 8),
-                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          Wrap(alignment: WrapAlignment.spaceBetween, children: [
                             TextButton(
                               onPressed: () =>
                                   Navigator.push(context, MaterialPageRoute(builder: (_) => const PasswordResetScreen())),
@@ -154,6 +155,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  const Center(child: SwitchModeButton(onDark: true)),
                 ]),
               ),
             ),
