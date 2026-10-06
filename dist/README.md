@@ -1,33 +1,38 @@
 # Android APK
 
-Smart Traffic app 1.1.0 (versionCode 3), package `com.fyp.smart_traffic`. Same app in three files:
+Smart Traffic app 1.2.0 (versionCode 4), package `com.fyp.smart_traffic`. Same app in three files:
 
 | File | For | SHA-256 |
 |---|---|---|
-| `smart-traffic-v1.1.0-arm64-v8a.apk` (15.0 MB) | almost all current phones (64-bit ARM) | `db6e0e81d844bd06dfa90638b8f88e26d9af5bfbb1f7b22ac9f8d387c7b5d1c4` |
-| `smart-traffic-v1.1.0-armeabi-v7a.apk` (14.5 MB) | older 32-bit phones | `f099d3ea94b7b4cfb1df2b491c0dd2e120b2f440b47faa0b055ee06a97a88c67` |
-| `smart-traffic-v1.1.0.apk` (34.3 MB) | universal: both of the above plus x86_64 (emulator) | `c0b9a93215f965d2542ea45bfec128f681402fc94ada26b13433e3a7b040206b` |
+| `smart-traffic-v1.2.0.apk` (34.7 MB) | universal: every phone (64-bit and 32-bit ARM) plus x86_64 (emulator) | `4adb632c5934fcb3e984d7694ae09c88d265d736c2fa6d57552f9e6b016e94eb` |
+| `smart-traffic-v1.2.0-arm64-v8a.apk` (15.1 MB) | almost all current phones (64-bit ARM), smaller download | `8454654cf17da58bb537e63c16392936bab5831983161883220b89f74c180ce9` |
+| `smart-traffic-v1.2.0-armeabi-v7a.apk` (14.7 MB) | older 32-bit phones | `aa80bb5255ffcc165cd225cca754297ae495ccdfa026f9c00b7f746145319e40` |
 
 If unsure, use the universal APK.
 
-What's new in 1.1.0:
-- **Traffic control dashboard.** Each intersection runs fixed-time while traffic is normal. When
-  congestion is significant it switches to adaptive timing. The app shows the mode, the reason, the
-  traffic behind it (vehicles, average speed, waiting time, congestion), and the green, yellow and
-  red times against the fixed plan. Mode changes are logged and announced.
-- **Signal lights on the live map** at every intersection: one head per approach, a hub coloured
-  by mode, and a countdown.
-- **Rush-hour simulation** in Settings → Demo, so the switch can be demonstrated.
-- A refreshed look (gradient header, cards, light and dark themes).
+What's new in 1.2.0:
+- **Mode selection at start-up**, with "Remember my choice" and a "Switch mode" option in both
+  modes:
+  - **Hardware Prototype:** a read-only, offline monitor for the physical ESP32 intersection. The
+    phone joins the controller's Wi-Fi "STMS-RSU"; there is no login and no server. It shows the
+    live signal heads, a countdown synchronised to the controller, adaptive timing with its reason,
+    traffic per approach, the signal plan, V2I and system health, vehicles and an event log, with
+    emergency and fallback banners.
+  - A built-in **simulator** for working without the hardware, always marked "SIMULATED DATA".
+  - See `docs/HARDWARE_MODE.md`.
+  - **Software System:** the app as before.
+- **Signal timing as a plain table** (green / yellow / all-red / red) instead of timing bars.
 
-It works with the cloud server (`docs/DEPLOY_CLOUD.md`). It installs over 1.0.x as an update
-(same signing key), and your data stays. Use it with a server running the same code; Render
-updates itself from the branch.
+1.1.0 added the traffic control dashboard (fixed-time / adaptive with reasons), signal lights on
+the live map and the rush-hour simulation.
+
+It works with the cloud server (`docs/DEPLOY_CLOUD.md`). It installs over 1.0.x and 1.1.0 as an
+update (same signing key), and your data stays.
 
 | | |
 |---|---|
 | Android | 7.0 (API 24) or newer; built for API 36 |
-| Permissions | Internet, precise/approximate location (while in use), foreground location service, wake lock, notifications |
+| Permissions | Internet, network state (Hardware mode: keep the connection on the controller's Wi-Fi), precise/approximate location (while in use), foreground location service, wake lock, notifications |
 | Signed with | a demo certificate (`CN=Smart Traffic FYP Demo`), SHA-256 `9f514a58a0d16acf9b3fba27f71d2565c0d687d35a1ab2001ce80af4b320d380` |
 
 Install: copy it to the phone and open it (allow installing unknown apps when asked), or

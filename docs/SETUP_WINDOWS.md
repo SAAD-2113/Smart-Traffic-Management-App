@@ -115,7 +115,7 @@ backend over HTTPS with a tunnel (e.g. Cloudflare Tunnel) and start uvicorn with
 
 ## 5. Install the Android app
 
-**Provided APK:** copy `dist/smart-traffic-v1.1.0-arm64-v8a.apk` (most phones) or the universal `dist/smart-traffic-v1.1.0.apk` to the phone and open it (allow "Install unknown apps"
+**Provided APK:** copy `dist/smart-traffic-v1.2.0-arm64-v8a.apk` (most phones) or the universal `dist/smart-traffic-v1.2.0.apk` to the phone and open it (allow "Install unknown apps"
 for your file manager when asked). Android 7.0 or newer.
 
 **Build it yourself:**

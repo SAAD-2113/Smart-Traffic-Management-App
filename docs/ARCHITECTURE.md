@@ -559,6 +559,25 @@ one ambulance, which is optional. Simulated vehicles:
 The manager app has a "Include simulated data" switch, and every list shows a SIM badge. Real
 and simulated data are never mixed without that label.
 
+## App modes: Hardware Prototype and Software System
+
+The mobile app opens with a mode choice, made before any login:
+- **Software System** is everything above: login, the driver and manager apps, the backend and
+  the traffic engine.
+- **Hardware Prototype** is a separate, read-only monitor for one physical intersection driven
+  by an ESP32. The phone joins the controller's Wi-Fi (STMS-RSU, no internet) and listens to its
+  WebSocket (`ws://192.168.4.1:81/`, protocol v2 JSON frames). The app sends nothing to the
+  controller, and the backend is not involved.
+
+The code is split by mode: `mobile/lib/hardware/` (Hardware), `mobile/lib/mode/` (the choice),
+and the rest of `mobile/lib/` (Software). Hardware mode never builds the software app, so it
+makes no login or server requests. On Android it binds its connection to the Wi-Fi network so
+traffic does not go out over mobile data.
+
+The countdown is anchored to the controller's `remaining_ms` on every frame and freezes when
+data stops (STALE after 1.5 s, or OFFLINE). Details, the simulator, the test server and the
+platform settings are in `docs/HARDWARE_MODE.md`.
+
 ## J. Project structure
 
 ```text

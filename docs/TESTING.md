@@ -5,7 +5,7 @@
 ```powershell
 cd traffic_engine;  uv run --group dev pytest        # 56 tests, pure Python
 cd backend;         uv run pytest                    # 116 tests, throwaway SQLite per test (no Docker needed)
-cd mobile;          flutter analyze; flutter test    # 33 tests
+cd mobile;          flutter analyze; flutter test    # 67 tests
 ```
 
 CI (`.github/workflows/ci.yml`) runs all three suites, then builds the Android APK and the web
@@ -37,7 +37,11 @@ dashboard on every push.
 | Mobile: offline queue, ordered delivery, backfill window, backoff, errors keep packets, closed session stops | 9 | `upload_policy_test.dart`, `tracking_controller_test.dart` |
 | Mobile: validators, server address, unit conversion | 8 | `config_and_units_test.dart` |
 | Mobile UI: hold-to-confirm, "no data" badge | 2 | `widget_smoke_test.dart` |
-| Mobile UI: mode badges labelled, control card shows mode/reason/traffic/calculated green and a pending switch, signal countdown on the server clock, map signal heads on the arrival side | 7 | `signal_widgets_test.dart` |
+| Mobile UI: mode badges labelled, control card shows mode/reason/traffic/calculated green (timing table) and a pending switch, signal countdown on the server clock, map signal heads on the arrival side | 7 | `signal_widgets_test.dart` |
+| Mode selection: shown before login on a fresh install, remembered choice, Hardware mode without login, Switch mode from both modes | 5 | `mode_test.dart` |
+| Hardware mode: frame parsing (example frame, missing/wrong fields, versions), countdown anchored to `remaining_ms` (re-anchor up and down), STALE/OFFLINE freeze, restart detection, event log, emergency popup | 17 | `test/hardware/frame_test.dart`, `monitor_test.dart` |
+| Hardware simulator: valid v2 frames, NS/EW sequence with 3 s yellow and 2 s all-red, green = clamp(6 + 2 x demand, 10, 60), 500 ms cadence, countdown ends exactly at the lamp change, mode button, emergencies, V2I loss | 7 | `simulator_test.dart` |
+| Hardware dashboard: every card shows the example frame, dashes for missing fields, emergency popup (5 s, dismiss) and banner, V2I-loss / version / simulated banners, STALE freeze | 5 | `dashboard_test.dart` |
 
 ## End-to-end checks done during development
 
@@ -50,6 +54,16 @@ dashboard on every push.
   while congestion eased and returned to FIXED-TIME after the rush hour. The switches appeared in the
   dashboard log, on the live map (hub colour) and as notifications. Normal demo traffic (30 vehicles)
   stays fixed-time.
+- **Hardware mode (web build in headless Chromium):**
+  - with `tools/hardware_test_server.py`, every card showed the example frame's values;
+  - the emergency and missing-field scenarios showed the banner and popup, and "—" without
+    errors;
+  - in Simulator mode the lamps cycled NS green → yellow → all-red → EW green with a matching
+    countdown;
+  - switching the source to the (unreachable) ESP32 showed OFFLINE at once, with grey lamps and
+    a frozen countdown.
+
+  Acceptance-test mapping: `docs/HARDWARE_MODE.md`.
 - **SUMO:** `sumo_bridge/bridge.py` against the running backend (4-junction corridor, 260 simulated
   seconds): SUMO vehicles appear as source `SUMO` with HIGH data quality, adaptive decisions are served,
   the bridge reports light states (connected), and the SUMO ambulance is detected on the Eastbound

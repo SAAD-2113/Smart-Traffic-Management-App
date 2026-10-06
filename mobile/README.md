@@ -1,6 +1,13 @@
 # Smart Traffic mobile app (Flutter)
 
-One app, two roles. After login the backend's role decides which app the user sees:
+On launch the app asks for a mode (with "Remember my choice"; "Switch mode" returns to it):
+
+- **Hardware Prototype:** a read-only, offline monitor of the physical ESP32 intersection
+  (WebSocket `ws://192.168.4.1:81/` on the controller's Wi-Fi "STMS-RSU", or a built-in
+  simulator). No login, no server. See `docs/HARDWARE_MODE.md`.
+- **Software System:** the full app below.
+
+In Software mode, the role the backend returns after login decides which app the user sees:
 
 - **Driver (END_USER):** vehicle setup and Vehicle ID, Home (start/stop tracking, GPS quality, speed,
   upload status and offline queue), Trips, Emergency (authorized emergency
@@ -40,7 +47,12 @@ the same Wi-Fi, `http://10.0.2.2:8000` for the Android emulator. Release signing
 
 ```
 lib/
-  main.dart, app.dart             startup, session scope, role routing
+  main.dart                       startup (local settings only), then the mode root
+  mode/                           mode selection, remembered choice, "Switch mode"
+  hardware/                       Hardware mode, separate from the rest: protocol v2 frame parser,
+                                  link status and countdown (monitor.dart), live WebSocket and
+                                  simulator sources, Android/iOS helpers, dashboard UI
+  app.dart                        Software mode: session scope, role routing
   core/                           config (server URL, installation id), API client, token store,
                                   key-value storage, theme and status colours, units, validators
   data/models, data/repositories  typed views of the API JSON; auth, vehicle and manager API calls
