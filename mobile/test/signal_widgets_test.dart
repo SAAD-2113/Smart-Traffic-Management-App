@@ -124,8 +124,12 @@ void main() {
     expect(find.text('42'), findsOneWidget); // vehicles
     expect(find.text('12'), findsWidgets); // km/h (and the countdown)
     expect(find.text('Active timing (calculated)'), findsOneWidget);
-    expect(find.textContaining('Green 48 s'), findsOneWidget);
-    expect(find.textContaining('+18 vs fixed'), findsOneWidget);
+    // Timing is a table (no bars): green with its change against the fixed plan.
+    expect(find.byType(SignalTimingTable), findsOneWidget);
+    expect(find.text('All-red'), findsOneWidget);
+    expect(find.textContaining('48 s'), findsOneWidget);
+    expect(find.textContaining('+18'), findsOneWidget);
+    expect(find.text('N/S'), findsOneWidget);
     expect(find.textContaining('virtual controller'), findsOneWidget);
     await tester.pump(const Duration(seconds: 1)); // let the tickers run once
   });

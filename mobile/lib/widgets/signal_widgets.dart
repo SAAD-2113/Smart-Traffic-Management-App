@@ -118,10 +118,11 @@ String lightLabel(String state) => switch (state) {
       _ => state.toLowerCase(),
     };
 
-/// Signal timing as a cycle diagram: one row per phase, green / yellow / red along the cycle.
-/// When [reference] (the fixed plan) is given, each green also shows the change against it.
-class SignalTimingDiagram extends StatelessWidget {
-  const SignalTimingDiagram({
+/// Signal timing as a plain table: one row per phase with green, yellow, all-red and red in
+/// seconds. When [reference] (the fixed plan) is given, each green also shows its change
+/// against it. The current phase is highlighted.
+class SignalTimingTable extends StatelessWidget {
+  const SignalTimingTable({
     super.key,
     required this.timings,
     required this.cycleS,
@@ -140,95 +141,76 @@ class SignalTimingDiagram extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
-    var offset = 0.0;
-    final rows = <Widget>[];
-    for (final t in timings) {
-      final start = offset;
-      offset += t.greenS + t.yellowS + t.allRedS;
+    final head = theme.textTheme.labelMedium?.copyWith(color: muted);
+    String sec(double v) => '${Units.number(v, decimals: 0)} s';
+    TableRow row(PhaseTiming t) {
+      final active = t.phase == highlightPhase;
       final ref = reference?.where((r) => r.phase == t.phase).firstOrNull;
       final delta = ref == null ? null : t.greenS - ref.greenS;
-      rows.add(Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Expanded(
-              child: Text(t.phase,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: t.phase == highlightPhase ? FontWeight.w800 : FontWeight.w600)),
-            ),
-            Text.rich(TextSpan(children: [
-              TextSpan(text: 'Green ${Units.number(t.greenS, decimals: 0)} s',
-                  style: const TextStyle(fontWeight: FontWeight.w700)),
+      final style = theme.textTheme.bodyMedium?.copyWith(
+        fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
+      return TableRow(
+        decoration: BoxDecoration(
+          color: active ? theme.colorScheme.primary.withValues(alpha: 0.07) : null,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+            child: Text(shortPhase(t.phase), style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+          Text.rich(
+            TextSpan(children: [
+              TextSpan(text: sec(t.greenS), style: const TextStyle(fontWeight: FontWeight.w800)),
               if (delta != null && delta.abs() >= 1)
                 TextSpan(
-                  text: '  ${delta > 0 ? '+' : '−'}${delta.abs().toStringAsFixed(0)} vs fixed',
-                  style: TextStyle(color: muted, fontWeight: FontWeight.w600),
+                  text: '  ${delta > 0 ? '+' : '−'}${delta.abs().toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: StatusColors.readable(ModeColors.adaptive, theme.brightness),
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
                 ),
-            ]), style: theme.textTheme.bodySmall),
-          ]),
-          const SizedBox(height: 5),
-          SizedBox(
-            height: 14,
-            child: LayoutBuilder(builder: (context, c) {
-              final w = c.maxWidth;
-              double px(double s) => cycleS <= 0 ? 0 : w * s / cycleS;
-              final before = px(start);
-              final green = px(t.greenS);
-              final yellow = px(t.yellowS);
-              final after = math.max(0.0, w - before - green - yellow);
-              return Row(children: [
-                if (before > 2) _segment(SignalColors.red.withValues(alpha: 0.75), before, left: true),
-                _segment(SignalColors.green, green, left: before <= 2),
-                _segment(SignalColors.yellow, yellow),
-                if (after > 2) _segment(SignalColors.red.withValues(alpha: 0.75), after, right: true),
-              ]);
-            }),
+            ]),
+            style: style,
           ),
-          const SizedBox(height: 3),
-          Text('Yellow ${Units.number(t.yellowS, decimals: 0)} s · Red ${Units.number(t.redS, decimals: 0)} s'
-              '${t.allRedS > 0 ? ' (incl. ${Units.number(t.allRedS, decimals: 0)} s all-red)' : ''}',
-              style: theme.textTheme.bodySmall?.copyWith(color: muted)),
-        ]),
-      ));
+          Text(sec(t.yellowS), style: style),
+          Text(sec(t.allRedS), style: style),
+          Text(sec(t.redS), style: style),
+        ],
+      );
     }
+
+    final cycleChanged = referenceCycleS != null && (referenceCycleS! - cycleS).abs() >= 1;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      ...rows,
-      Row(children: [
-        Text('Cycle ${Units.number(cycleS, decimals: 0)} s', style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w700)),
-        if (referenceCycleS != null && (referenceCycleS! - cycleS).abs() >= 1)
-          Text('  ·  fixed plan ${Units.number(referenceCycleS, decimals: 0)} s',
-              style: theme.textTheme.labelMedium?.copyWith(color: muted)),
-        const Spacer(),
-        _legendDot(context, SignalColors.green, 'Green'),
-        _legendDot(context, SignalColors.yellow, 'Yellow'),
-        _legendDot(context, SignalColors.red, 'Red'),
-      ]),
+      Table(
+        columnWidths: const {0: FlexColumnWidth(1.1), 1: FlexColumnWidth(1.5), 2: FlexColumnWidth(1), 3: FlexColumnWidth(1), 4: FlexColumnWidth(1)},
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+        children: [
+          TableRow(children: [
+            Padding(padding: const EdgeInsets.only(left: 6, bottom: 4), child: Text('Phase', style: head)),
+            Text('Green', style: head),
+            Text('Yellow', style: head),
+            Text('All-red', style: head),
+            Text('Red', style: head),
+          ]),
+          for (final t in timings) row(t),
+        ],
+      ),
+      const SizedBox(height: 6),
+      Padding(
+        padding: const EdgeInsets.only(left: 6),
+        child: Text(
+          'Cycle ${sec(cycleS)}'
+          '${cycleChanged ? ' · fixed plan ${sec(referenceCycleS!)}' : ''}'
+          '${reference != null ? ' · green change against the fixed plan' : ''}',
+          style: theme.textTheme.labelMedium?.copyWith(color: muted),
+        ),
+      ),
     ]);
   }
-
-  /// Segments are separated by a 2 px gap; the row's outer ends are rounded.
-  Widget _segment(Color color, double width, {bool left = false, bool right = false}) => Container(
-        width: math.max(0, width - 2),
-        margin: const EdgeInsets.only(right: 2),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.horizontal(
-            left: Radius.circular(left ? 4 : 1),
-            right: Radius.circular(right ? 4 : 1),
-          ),
-        ),
-      );
-
-  Widget _legendDot(BuildContext context, Color color, String label) => Padding(
-        padding: const EdgeInsets.only(left: 8),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 9, height: 9, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(width: 3),
-          Text(label, style: Theme.of(context).textTheme.labelSmall),
-        ]),
-      );
 }
 
 /// Intersection code and name, then the current light: "N/S green · 12 s".
@@ -351,7 +333,7 @@ class ControlCard extends StatelessWidget {
                   if (c.timingChanged) Text('advisory', style: theme.textTheme.labelSmall?.copyWith(color: muted)),
                 ]),
                 const SizedBox(height: 8),
-                SignalTimingDiagram(
+                SignalTimingTable(
                   timings: c.activeTiming,
                   cycleS: c.activeCycleS,
                   reference: c.timingChanged ? c.fixedTiming : null,

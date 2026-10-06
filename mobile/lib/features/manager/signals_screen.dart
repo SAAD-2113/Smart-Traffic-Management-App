@@ -117,7 +117,7 @@ class _SignalTile extends StatelessWidget {
               Text(control.headline, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800)),
               Text(control.detail, maxLines: 3, overflow: TextOverflow.ellipsis, style: theme.textTheme.bodySmall),
               const SizedBox(height: 12),
-              SignalTimingDiagram(
+              SignalTimingTable(
                 timings: control.activeTiming,
                 cycleS: control.activeCycleS,
                 reference: control.timingChanged ? control.fixedTiming : null,
