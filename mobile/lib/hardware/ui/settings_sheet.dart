@@ -50,6 +50,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
     final theme = Theme.of(context);
     final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     final sim = m.simulator;
+    final twin = m.twin;
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
@@ -114,8 +115,8 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               const SizedBox(height: 12),
               _InfoBox(
                 icon: Icons.wifi,
-                text: 'Join the Wi-Fi network "${HardwareSettings.ssid}" in the phone\'s settings. It has no internet; '
-                    'if the phone asks, choose to stay connected.'
+                text: 'Join the Wi-Fi network "${HardwareSettings.ssid}" (password ${HardwareSettings.wifiPassword}) in the '
+                    'phone\'s settings. It has no internet; if the phone asks, choose to stay connected.'
                     '${m.supportsWifiBinding ? '\nThis app keeps its connection on Wi-Fi: ${m.wifiBound ? 'Wi-Fi in use' : 'no Wi-Fi network found yet'}.' : ''}',
               ),
               if (sim != null) ...[
@@ -148,11 +149,61 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                   ]),
                 ),
               ],
+              if (twin != null) ...[
+                const SizedBox(height: 20),
+                Text('Simulator controls (firmware v3 twin)', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                Text('These change the simulated controller only, like typing in its Serial Monitor.', style: muted),
+                const SizedBox(height: 8),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: Column(children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                      child: Row(children: [
+                        const Icon(Icons.tune),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: SegmentedButton<String>(
+                            key: const ValueKey('twin-mode'),
+                            segments: const [
+                              ButtonSegment(value: 'auto', label: Text('Auto')),
+                              ButtonSegment(value: 'fixed', label: Text('Fixed')),
+                              ButtonSegment(value: 'adaptive', label: Text('Adaptive')),
+                            ],
+                            selected: {twin.requestedMode},
+                            onSelectionChanged: (s) => setState(() => twin.command(switch (s.first) {
+                                  'fixed' => 'f',
+                                  'adaptive' => 'a',
+                                  _ => 'o',
+                                })),
+                          ),
+                        ),
+                      ]),
+                    ),
+                    SwitchListTile(
+                      key: const ValueKey('twin-vehicles'),
+                      secondary: const Icon(Icons.directions_car),
+                      title: const Text('Vehicles powered'),
+                      subtitle: const Text('Off: all six presets stop sending (README case 4)'),
+                      value: twin.vehiclesOn,
+                      onChanged: (v) => setState(() => twin.setVehiclesOn(v)),
+                    ),
+                    ListTile(
+                      key: const ValueKey('twin-emergency'),
+                      leading: const Icon(Icons.emergency, color: StatusColors.emergency),
+                      title: const Text('Emergency vehicle now'),
+                      subtitle: const Text('Drives in from 140 m at 50 km/h; presets 5 and 6 also come on their own'),
+                      onTap: twin.emergencyNow,
+                    ),
+                  ]),
+                ),
+              ],
               const SizedBox(height: 16),
               const _InfoBox(
                 icon: Icons.visibility_outlined,
                 text: 'Read-only monitor: this app never sends commands to the controller. '
-                    'The mode is changed with the button on the hardware.',
+                    'Firmware v3: change the mode in its Serial Monitor (f / a / o) or on its web page '
+                    'http://192.168.4.1/. Part-3 controllers: with the button on the hardware.',
               ),
             ]),
           ),

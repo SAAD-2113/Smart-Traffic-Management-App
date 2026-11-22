@@ -9,6 +9,7 @@ import '../model/labels.dart';
 import '../monitor.dart';
 import '../settings.dart';
 import 'cards.dart';
+import 'cards_v3.dart';
 import 'hw_style.dart';
 import 'settings_sheet.dart';
 
@@ -22,10 +23,17 @@ class HardwareDashboardScreen extends StatelessWidget {
     return Scaffold(
       body: Stack(children: [
         LayoutBuilder(builder: (context, c) {
+          final m = context.watch<HardwareMonitor>();
           final twoColumns = c.maxWidth >= 720;
           const gap = SizedBox(height: 14);
-          final left = <Widget>[const LiveSignalCard(), gap, const TimingCard(), gap, const PlanCard()];
-          final right = <Widget>[const TrafficCard(), gap, const SystemCard(), gap, const VehiclesCard(), gap, const EventLogCard()];
+          // Firmware v3 (four lanes) or the Part-3 layout (NS/EW phases), by the latest frame.
+          final v3 = m.isV3;
+          final left = v3
+              ? <Widget>[V3SignalCard(view: m), gap, V3TimingCard(view: m), gap, V3PlanCard(view: m)]
+              : <Widget>[const LiveSignalCard(), gap, const TimingCard(), gap, const PlanCard()];
+          final right = v3
+              ? <Widget>[V3LanesCard(view: m), gap, V3SystemCard(view: m), gap, V3VehiclesCard(view: m), gap, const EventLogCard()]
+              : <Widget>[const TrafficCard(), gap, const SystemCard(), gap, const VehiclesCard(), gap, const EventLogCard()];
           return ListView(
             key: const ValueKey('hardware-dashboard'),
             padding: EdgeInsets.zero,
@@ -38,7 +46,7 @@ class HardwareDashboardScreen extends StatelessWidget {
                     constraints: const BoxConstraints(maxWidth: 1280),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                       const _Banners(),
-                      const StatusRow(),
+                      if (v3) V3StatusRow(view: m) else const StatusRow(),
                       gap,
                       if (twoColumns)
                         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -84,7 +92,7 @@ class _Header extends StatelessWidget {
         ),
       ],
       child: Wrap(spacing: 8, runSpacing: 8, crossAxisAlignment: WrapCrossAlignment.center, children: [
-        HeaderPill(key: const ValueKey('intersection-id'), label: 'Intersection ${orDash(m.state?.id)}', icon: Icons.place_outlined),
+        HeaderPill(key: const ValueKey('intersection-id'), label: 'Intersection ${orDash(m.intersectionLabel)}', icon: Icons.place_outlined),
         Container(
           key: const ValueKey('link-badge'),
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
@@ -147,6 +155,7 @@ class _Banners extends StatelessWidget {
   Widget build(BuildContext context) {
     final m = context.watch<HardwareMonitor>();
     final s = m.state;
+    final s3 = m.v3;
     final banners = <Widget>[
       if (m.showSimulated)
         _Banner(
@@ -166,6 +175,32 @@ class _Banners extends StatelessWidget {
           filled: true,
           text: 'EMERGENCY PRIORITY — ${approachName(s.preempt.approach).toUpperCase()} — ${orDash(s.preempt.vehicleId)}'
               '${m.isLive ? '' : ' (last known)'}',
+        ),
+      if (s3 != null && s3.priorityActive == true)
+        _Banner(
+          key: const ValueKey('emergency-banner'),
+          color: StatusColors.emergency,
+          icon: Icons.emergency,
+          filled: true,
+          text: 'EMERGENCY PRIORITY — lane ${approachName(s3.cur).toUpperCase()}'
+              '${s3.emergencyOn(s3.cur)?.id == null ? '' : ' — vehicle ${s3.emergencyOn(s3.cur)!.id}'}'
+              '${m.isLive ? '' : ' (last known)'}',
+        )
+      else if (s3?.emergencyLane != null)
+        _Banner(
+          key: const ValueKey('emergency-banner'),
+          color: StatusColors.emergency,
+          icon: Icons.emergency,
+          text: 'Emergency vehicle on lane ${approachName(s3!.emergencyLane)} — priority requested'
+              '${m.isLive ? '' : ' (last known)'}',
+        ),
+      if (s3 != null && s3.dataLost)
+        _Banner(
+          key: const ValueKey('v2i-banner'),
+          color: StatusColors.warning,
+          icon: Icons.sync_problem,
+          filled: true,
+          text: 'No vehicle data for 5 s — AUTO is back on the fixed 30 s round-robin',
         ),
       if (s != null && s.v2iLost)
         _Banner(
@@ -212,7 +247,7 @@ class _ConnectionBanner extends StatelessWidget {
       text = 'Simulator starting…';
     } else if (offline) {
       text = 'Not connected to ${m.sourceLabel}. Join the Wi-Fi network "${HardwareSettings.ssid}" '
-          '(it has no internet). Retrying every 2 s.';
+          '(password ${HardwareSettings.wifiPassword}; it has no internet). Retrying every 2 s.';
     } else {
       text = 'Connected, but no data from the controller for more than 1.5 s.';
     }

@@ -25,9 +25,10 @@ only connection is the WebSocket to the controller.
 
 ## Using it with the hardware
 
-1. Power on the ESP32. Its Wi-Fi network is called **STMS-RSU**.
-2. On the phone, join STMS-RSU in the Wi-Fi settings. The network has no internet; if Android
-   asks, choose to stay connected.
+1. Power on the ESP32. With firmware v3 its Wi-Fi network is **V2I-Junction-01**, password
+   **v2i12345** (both from `v2i_common.h`).
+2. On the phone, join V2I-Junction-01 in the Wi-Fi settings. The network has no internet; if
+   Android asks, choose to stay connected.
 3. Open the app and tap **Hardware Prototype**.
 4. The badge in the header shows the connection state:
    - **ONLINE** (green): a state frame arrived within the last 1.5 s.
@@ -37,9 +38,10 @@ only connection is the WebSocket to the controller.
 The controller address defaults to `ws://192.168.4.1:81/`. To change it, tap the settings icon
 and change the IP and port. The app remembers them.
 
-**The app only listens.** It never sends anything to the controller. Mode changes happen with
-the physical button on the hardware, so nothing in the app can make the signals unsafe. The
-emergency popup is a notification only.
+**The app only listens.** It never sends anything to the controller, so nothing in the app can
+make the signals unsafe. With firmware v3 the mode is changed in the controller's Serial
+Monitor (`f` / `a` / `o`) or on its own web page `http://192.168.4.1/`; on a Part-3 controller
+with the hardware button. The emergency popup is a notification only.
 
 ## What the dashboard shows
 
@@ -63,7 +65,8 @@ Banners:
   switching back to the ESP32 until real frames replace the simulated state.
 - **Unsupported data version** when frames with a `"v"` other than 2 arrive. Those frames are
   ignored.
-- A connection banner when the state is STALE or OFFLINE, with a reminder to join STMS-RSU.
+- A connection banner when the state is STALE or OFFLINE, with a reminder to join the
+  controller's Wi-Fi.
 
 Each `ev_request` event opens a popup for 5 s with the vehicle, the approach and the result
 (granted or rejected), and a **Dismiss** button.
@@ -86,6 +89,35 @@ The countdown always comes from the hardware; the app has no free-running signal
 - **Controller restart:** when `uptime_ms` is lower than in the previous frame, the event log
   gets a **Controller restarted** entry.
 
+## Firmware v3 (the current hardware)
+
+Firmware v3 (`docs/firmware-v3`) sends a different layout with the same `"v": 2`: a
+`{"v":2,"t":"state",...}` frame every 500 ms on `ws://192.168.4.1:81/` (also `GET /api/state`),
+and no event frames. The app recognises it by `"t":"state"` and switches the dashboard to the
+four-lane layout; Part-3 frames (`"type"`) still get the layout described above.
+
+| Section | Content (all from the state JSON) |
+|---|---|
+| Status row | Effective mode, requested mode (AUTO / FIXED / ADAPTIVE), "Switching to … at the next lane decision" while `target_mode` differs, congestion, vehicles connected |
+| Live signals | One head per lane (N, E, S, W; one green at a time) with its lamp from `lanes[].sig`, an **MM:SS display beside each head** (the TM1637 modules), and the current phase's countdown in the middle |
+| Current phase | Planned green, elapsed, remaining, next phase, priority hold, and `mode_reason` word for word |
+| Lanes | Per lane: signal and MM:SS, queued, approaching, crossing, Qw, density, flow ratio y, planned green ("skip" = 0 s) |
+| Webster plan | C0, Y, L, K, s and the window of the preview plan, with the formulas |
+| Controller | Name, uptime, packets received, bad packets, queued and approaching totals |
+| Vehicles | ID, type, device (`hw`), lane decided by the intersection, test lane `tl` (warning icon on a mismatch), state, speed in **km/h** (the firmware's unit), distance, heading, RSSI, packets, lost, age |
+| Event log | Made by the app from what changed between two states: lane greens, yellows, all-red, mode changes, vehicles connected / removed, emergency requested / priority green / ended, vehicle data lost |
+
+Banners: red **EMERGENCY PRIORITY — lane — vehicle** while `priority_active`; a red-outlined
+"Emergency vehicle on lane … — priority requested" while `emergency_lane` is set but not yet
+green; amber "No vehicle data for 5 s — AUTO is back on the fixed 30 s round-robin" when the
+firmware reports that fallback. The emergency popup opens when a request appears and when the
+priority green starts.
+
+Countdowns: every lane's `rem` and `timing.remaining` re-anchor on each frame and count down
+locally; a lane display shows `ceil(seconds − 0.001)` as MM:SS like the firmware. They freeze
+when the data stops, exactly like the Part-3 countdown below. `uptime_s` going back logs
+**Controller restarted**.
+
 ## Frame format (protocol version 2)
 
 The controller sends JSON text frames:
@@ -101,7 +133,15 @@ system, which uses SI units. If the firmware sends km/h, change `speedUnitToKmh`
 
 ## Simulator (no hardware needed)
 
-In the dashboard settings, set **Data source** to **Simulator**.
+In the dashboard settings, set **Data source** to **Simulator**. The simulator is the
+**firmware v3 twin**: the `v2i_core` port of the intersection firmware runs on the phone with
+the six firmware vehicle presets (powered 5 s after the start; presets 5 and 6 drive in after
+30 s and 70 s), and its state JSON goes through the same parser every 500 ms. Its controls, in
+the settings sheet: the requested mode (like `o` / `f` / `a` in the Serial Monitor), **Vehicles
+powered** (off = README case 4) and **Emergency vehicle now**.
+
+The Part-3 simulator below is kept in the code (`link/simulator.dart`, with its tests) for the
+Part-3 frame layout:
 - **Frames:** exactly the same format and rate as the ESP32. They go through the same parser.
 - **Cycle:** NS green → NS yellow (3 s) → all-red (2 s) → EW green → EW yellow (3 s) →
   all-red (2 s) → repeat.
@@ -112,8 +152,7 @@ In the dashboard settings, set **Data source** to **Simulator**.
 - **Emergencies:** about once a minute an emergency vehicle requests priority. Most requests are
   granted. A granted request cuts a conflicting green short, after its minimum green, through
   yellow and all-red, and holds the green until the vehicle has passed.
-- **Simulator controls** (in the settings sheet, affecting simulated data only): press the
-  mode button, simulate a V2I link loss, request an emergency now.
+- **Controls:** press the mode button, simulate a V2I link loss, request an emergency now.
 
 The SIMULATED DATA banner is always visible while the simulator is the source.
 
@@ -142,7 +181,7 @@ python tools/hardware_test_server.py --scenario restart    # uptime goes back
 - **`AndroidManifest.xml`:** adds the `ACCESS_NETWORK_STATE` permission. It is a normal
   permission, granted at install without a prompt. The app needs it to find the Wi-Fi network.
 - **`MainActivity.java`:** a method channel `com.fyp.smart_traffic/hardware` with two jobs.
-  - *Wi-Fi binding.* STMS-RSU has no internet, so Android may send the app's traffic over
+  - *Wi-Fi binding.* The controller's network has no internet, so Android may send the app's traffic over
     mobile data instead. While Hardware mode is open, the app follows the Wi-Fi network with
     `ConnectivityManager.registerNetworkCallback`, for Wi-Fi with or without internet. It binds
     the app process to that network with `bindProcessToNetwork`, so the WebSocket to
@@ -178,3 +217,4 @@ python tools/hardware_test_server.py --scenario restart    # uptime goes back
 | 6 | A frame with missing fields shows "—" and does not crash | `frame_test.dart`, `dashboard_test.dart`, and `--scenario missing` |
 | 7 | `ev_request` shows the popup; `preempt.active` shows the red banner | `dashboard_test.dart`, and `--scenario emergency` |
 | 8 | Switch mode returns to the selection from both modes | `mode_test.dart` (hardware header, login screen) |
+| 9 | Firmware v3 frames: parsed, four-lane dashboard, MM:SS per lane counting down and freezing, events derived from state changes, restart detection; the twin simulator's frames | `test/hardware/v3_test.dart` (frames produced by the `v2i_core` port of the firmware). Not yet checked against the physical ESP32 running firmware v3. |

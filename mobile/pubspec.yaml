@@ -28,6 +28,9 @@ dependencies:
   http: ^1.6.0
   web_socket_channel: ^3.0.3
   intl: ^0.20.3
+  # Pure-Dart port of the V2I firmware v3 (Digital V2I mode, Hardware-mode simulator)
+  v2i_core:
+    path: packages/v2i_core
 
 dev_dependencies:
   flutter_test:

@@ -506,13 +506,15 @@ class EventLogCard extends StatelessWidget {
         'v2i_lost' => Icons.wifi_tethering_off,
         'v2i_restored' => Icons.wifi_tethering,
         'restart' => Icons.power_settings_new,
+        'vehicle_conn' => Icons.directions_car,
+        'vehicle_lost' => Icons.no_crash_outlined,
         _ => e.fromApp ? Icons.restart_alt : Icons.info_outline,
       };
 
   static Color _eventColor(LogEntry e) => switch (e.event) {
         'ev_request' || 'preempt_start' || 'preempt_end' => StatusColors.emergency,
-        'v2i_lost' => StatusColors.warning,
-        'v2i_restored' => StatusColors.ok,
+        'v2i_lost' || 'vehicle_lost' => StatusColors.warning,
+        'v2i_restored' || 'vehicle_conn' => StatusColors.ok,
         _ => e.fromApp ? StatusColors.alert : StatusColors.info,
       };
 }

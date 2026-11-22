@@ -12,7 +12,11 @@ class IntersectionView extends StatelessWidget {
     required this.countdown,
     required this.interval,
     required this.live,
+    this.displays,
   });
+
+  /// Optional MM:SS display beside each head (firmware v3 lanes: the TM1637 modules).
+  final Map<String, String?>? displays;
 
   /// "R" | "Y" | "G" | "OFF" per approach; null when missing.
   final Map<String, String?> signals;
@@ -44,6 +48,18 @@ class IntersectionView extends StatelessWidget {
             vertical: vertical,
             live: live,
           );
+      final d = displays;
+      final dispW = lamp * 3.4, dispH = lamp * 1.35;
+      Widget display(String a) => _LaneDisplay(
+            key: ValueKey('display-$a'),
+            text: d?[a],
+            signal: signals[a],
+            live: live,
+            width: dispW,
+            height: dispH,
+          );
+      final nTop = center - road / 2 - gap - long, sTop = center + road / 2 + gap;
+      final wLeft = center - road / 2 - gap - long, eLeft = center + road / 2 + gap;
       return Center(
         child: SizedBox(
           width: size,
@@ -51,10 +67,18 @@ class IntersectionView extends StatelessWidget {
           child: Stack(children: [
             Positioned.fill(child: CustomPaint(painter: _RoadPainter(road: road, dark: dark))),
             // Each head stands on its approach, just outside the junction box.
-            Positioned(left: center - thick / 2, top: center - road / 2 - gap - long, child: head('N', vertical: true)),
-            Positioned(left: center - thick / 2, top: center + road / 2 + gap, child: head('S', vertical: true)),
-            Positioned(left: center - road / 2 - gap - long, top: center - thick / 2, child: head('W', vertical: false)),
-            Positioned(left: center + road / 2 + gap, top: center - thick / 2, child: head('E', vertical: false)),
+            Positioned(left: center - thick / 2, top: nTop, child: head('N', vertical: true)),
+            Positioned(left: center - thick / 2, top: sTop, child: head('S', vertical: true)),
+            Positioned(left: wLeft, top: center - thick / 2, child: head('W', vertical: false)),
+            Positioned(left: eLeft, top: center - thick / 2, child: head('E', vertical: false)),
+            if (d != null) ...[
+              // vertical heads: display on the left (the label is on the right)
+              Positioned(left: center - thick / 2 - 6 - dispW, top: nTop + long / 2 - dispH / 2, child: display('N')),
+              Positioned(left: center - thick / 2 - 6 - dispW, top: sTop + long / 2 - dispH / 2, child: display('S')),
+              // horizontal heads: display below (the label is above)
+              Positioned(left: wLeft + long / 2 - dispW / 2, top: center + thick / 2 + 6, child: display('W')),
+              Positioned(left: eLeft + long / 2 - dispW / 2, top: center + thick / 2 + 6, child: display('E')),
+            ],
             Center(child: _Countdown(seconds: countdown, interval: interval, live: live, size: road * 0.92)),
           ]),
         ),
@@ -164,6 +188,52 @@ class _SignalHead extends StatelessWidget {
                   color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ),
       ]),
+    );
+  }
+}
+
+/// A lane's 4-digit display, "MM:SS" in the lane's current colour.
+class _LaneDisplay extends StatelessWidget {
+  const _LaneDisplay({
+    super.key,
+    required this.text,
+    required this.signal,
+    required this.live,
+    required this.width,
+    required this.height,
+  });
+
+  final String? text;
+  final String? signal;
+  final bool live;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = live ? HwColors.lamp(signal) : const Color(0xFF8A94A6);
+    return Container(
+      width: width,
+      height: height,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1220),
+        borderRadius: BorderRadius.circular(height * 0.22),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
+      ),
+      child: FittedBox(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: height * 0.2),
+          child: Text(text ?? '--:--',
+              style: TextStyle(
+                color: text == null ? const Color(0xFF8A94A6) : (signal == 'Y' ? const Color(0xFFFFD54F) : color),
+                fontWeight: FontWeight.w900,
+                fontSize: height * 0.7,
+                letterSpacing: 1,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              )),
+        ),
+      ),
     );
   }
 }

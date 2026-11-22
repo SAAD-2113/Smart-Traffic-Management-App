@@ -1,3 +1,5 @@
+import 'package:v2i_core/v2i_core.dart' show AP_PASS, AP_SSID;
+
 import '../core/storage/kv_store.dart';
 
 enum DataSource { live, simulator }
@@ -9,8 +11,11 @@ class HardwareSettings {
   static const defaultHost = '192.168.4.1';
   static const defaultPort = 81;
 
-  /// Wi-Fi network the ESP32 creates (no internet).
-  static const ssid = 'STMS-RSU';
+  /// Wi-Fi network the ESP32 creates (no internet), from firmware v3 (v2i_common.h).
+  static const ssid = AP_SSID;
+
+  /// The access point's WPA2 password, also from v2i_common.h (printed in the firmware README).
+  static const wifiPassword = AP_PASS;
 
   static const _kHost = 'hw_host';
   static const _kPort = 'hw_port';

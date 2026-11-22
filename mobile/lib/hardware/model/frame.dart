@@ -1,6 +1,12 @@
 import 'dart:convert';
 
+import 'frame_v3.dart';
+
+export 'frame_v3.dart';
+
 /// Frames sent by the ESP32 intersection controller (protocol version 2), JSON text frames.
+/// Two layouts carry "v":2: the Part-3 layout ("type":"state" / "type":"event", NS/EW phases)
+/// and firmware v3 ("t":"state", four lanes; see frame_v3.dart).
 ///
 /// Every field is optional on purpose: a missing or unexpected value becomes null and the UI
 /// shows "—". Parsing never throws.
@@ -18,6 +24,12 @@ sealed class ParsedFrame {
 class StateFrame extends ParsedFrame {
   const StateFrame(this.state);
   final HwState state;
+}
+
+/// Firmware v3 state frame (`"t":"state"`).
+class V3StateFrame extends ParsedFrame {
+  const V3StateFrame(this.state);
+  final V3State state;
 }
 
 class EventFrame extends ParsedFrame {
@@ -48,6 +60,7 @@ ParsedFrame parseFrame(String text) {
   final j = decoded.map((k, v) => MapEntry('$k', v));
   final v = j['v'];
   if (_int(v) != supportedVersion) return UnsupportedFrame(v);
+  if (!j.containsKey('type') && j['t'] == 'state') return V3StateFrame(V3State.fromJson(j));
   return switch (j['type']) {
     'state' => StateFrame(HwState.fromJson(j)),
     'event' => EventFrame(HwEvent.fromJson(j)),
