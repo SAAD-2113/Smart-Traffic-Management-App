@@ -147,6 +147,35 @@ class _DriverHomeState extends State<DriverHome> {
         ]),
       ),
       const SizedBox(height: 14),
+      HwCard(
+        title: 'Physical junction (ESP32)',
+        icon: Icons.developer_board,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('Drive this phone at the real firmware v3 junction, together with the ESP vehicles (hardware bridge).',
+              style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const ValueKey('esp32-drive'),
+            onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => VehicleSetupScreen(
+                          esp32: true,
+                          session: JoinedSession(
+                            sessionId: 'esp32',
+                            name: 'ESP32 junction',
+                            centerLat: v2i.CENTER_LAT,
+                            centerLon: v2i.CENTER_LON,
+                            vehicleId: me.vehicleId!,
+                            emergency: me.emergency,
+                          ),
+                        ))),
+            icon: const Icon(Icons.developer_board),
+            label: const Text('Drive at the ESP32 junction'),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 14),
       FutureBuilder<List<JoinedSession>>(
         future: _joined,
         builder: (context, snap) {
@@ -175,8 +204,11 @@ class _DriverHomeState extends State<DriverHome> {
 
 /// Choose where the position comes from, then drive.
 class VehicleSetupScreen extends StatefulWidget {
-  const VehicleSetupScreen({super.key, required this.session});
+  const VehicleSetupScreen({super.key, required this.session, this.esp32 = false});
   final JoinedSession session;
+
+  /// HardwareBridgeTransport: drive at the physical ESP32 junction instead of a session.
+  final bool esp32;
 
   @override
   State<VehicleSetupScreen> createState() => _VehicleSetupScreenState();
@@ -192,14 +224,39 @@ class _VehicleSetupScreenState extends State<VehicleSetupScreen> {
   List<TripPoint>? _points;
   String? _tripName;
   String? _replayNote;
+  bool _overLan = false;
+  final _lanAddress = TextEditingController();
+
+  @override
+  void dispose() {
+    _lanAddress.dispose();
+    super.dispose();
+  }
+
+  static String? _addressError(String v) =>
+      RegExp(r'^[A-Za-z0-9.-]+(:\d{1,5})?$').hasMatch(v.trim()) ? null : 'Address like 192.168.43.1:8080';
 
   void _start() {
+    if (_overLan && _addressError(_lanAddress.text) != null) {
+      setState(() {});
+      return;
+    }
     final DriveSource source = switch (_kind) {
       _Kind.simulated => SimulatedDrive(arm: _arm, slot: _slot, startDist: _dist, kmh: _kmh),
       _Kind.gps => const LiveGpsDrive(),
       _Kind.replay => ReplayDrive(_points!, name: _tripName ?? 'Recorded trip'),
     };
-    Navigator.push(context, MaterialPageRoute(builder: (_) => VehicleScreen(session: widget.session, source: source)));
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => VehicleScreen(
+                  session: widget.session,
+                  source: source,
+                  connection: widget.esp32
+                      ? VehicleConnection.esp32
+                      : (_overLan ? VehicleConnection.lan : VehicleConnection.cloud),
+                  lanAddress: _lanAddress.text.trim().contains(':') ? _lanAddress.text.trim() : '${_lanAddress.text.trim()}:8080',
+                )));
   }
 
   Future<void> _pickTrip() async {
@@ -229,7 +286,8 @@ class _VehicleSetupScreenState extends State<VehicleSetupScreen> {
   Widget build(BuildContext context) {
     final s = widget.session;
     final theme = Theme.of(context);
-    final canStart = _kind != _Kind.replay || (_points?.isNotEmpty ?? false);
+    final canStart = (_kind != _Kind.replay || (_points?.isNotEmpty ?? false)) &&
+        (!_overLan || widget.esp32 || _addressError(_lanAddress.text) == null);
     return Scaffold(
       appBar: AppBar(title: Text(s.name)),
       body: ListView(padding: const EdgeInsets.all(16), children: [
@@ -296,6 +354,47 @@ class _VehicleSetupScreenState extends State<VehicleSetupScreen> {
               ]),
             ),
         },
+        const SizedBox(height: 14),
+        if (widget.esp32)
+          const HwCard(
+            title: 'Physical junction (ESP32, firmware v3)',
+            icon: Icons.developer_board,
+            child: Text('Join the Wi-Fi "${v2i.AP_SSID}" (password ${v2i.AP_PASS}) first. This phone then POSTs its packets to '
+                'http://${v2i.INTERSECTION_IP_STR}/api/vehicle every 500 ms and shows the ESP32\'s ACK, so it shares the junction '
+                'with the ESP vehicles. The ESP32 cannot check accounts: this phone sends "ty":1 only if an admin approved it.'),
+          )
+        else
+          HwCard(
+            title: 'Connection',
+            icon: Icons.settings_ethernet,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              SegmentedButton<bool>(
+                key: const ValueKey('connection'),
+                segments: const [
+                  ButtonSegment(value: false, label: Text('Cloud relay'), icon: Icon(Icons.cloud_outlined)),
+                  ButtonSegment(value: true, label: Text('LAN'), icon: Icon(Icons.wifi)),
+                ],
+                selected: {_overLan},
+                onSelectionChanged: (v) => setState(() => _overLan = v.first),
+              ),
+              if (_overLan) ...[
+                const SizedBox(height: 8),
+                TextField(
+                  key: const ValueKey('lan-address'),
+                  controller: _lanAddress,
+                  keyboardType: TextInputType.url,
+                  decoration: InputDecoration(
+                    labelText: 'Intersection phone address',
+                    hintText: '192.168.43.1:8080',
+                    errorText: _lanAddress.text.isEmpty ? null : _addressError(_lanAddress.text),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 4),
+                Text('Shown on the intersection phone ("LAN" card). Same Wi-Fi or its hotspot.', style: theme.textTheme.bodySmall),
+              ],
+            ]),
+          ),
         const SizedBox(height: 18),
         FilledButton.icon(
           key: const ValueKey('start-drive'),

@@ -92,7 +92,12 @@ class DigitalIntersection extends ChangeNotifier implements V3View {
         linkState = state;
         linkReason = reason;
         notifyListeners();
-      };
+      }
+      // what the ESP32's own server does (used by the LAN transport)
+      ..stateNow = (() => jsonEncode(controller.buildState()))
+      ..onModeRequest = _modeRequest
+      ..onWsText = _wsCommand
+      ..onWsClient = ((id, on) => note('WebSocket client $id ${on ? 'connected' : 'disconnected'}'));
     link.start();
     controller.start();
     _refresh();
@@ -201,6 +206,31 @@ class DigitalIntersection extends ChangeNotifier implements V3View {
 
   /// The injected vehicles as a scenario, for the Fixed vs Adaptive comparison.
   List<v2i.VehicleSpec> get injectedSpecs => [for (final v in injected) v.spec];
+
+  /// GET /api/mode?m=… as in the firmware: set it, then reply with the modes.
+  String _modeRequest(String m) {
+    final c = controller;
+    final ok = m.isNotEmpty && c.setReqModeByName(m, 'web /api/mode');
+    _refresh();
+    notifyListeners();
+    return '{"ok":$ok,"requested_mode":"${v2i.reqModeName(c.reqMode)}","mode":"${v2i.modeName(c.effMode)}",'
+        '"target_mode":"${v2i.modeName(c.targetMode())}"}';
+  }
+
+  /// A WebSocket text message as in the firmware: "auto" / "fixed" / "adaptive" or {"mode":"…"}.
+  void _wsCommand(String text) {
+    var msg = text.length > 95 ? text.substring(0, 95) : text;
+    msg = msg.replaceFirst(RegExp(r'[ \n\r]+$'), '');
+    if (controller.setReqModeByName(msg, 'WebSocket')) return;
+    Object? cmd;
+    try {
+      cmd = jsonDecode(msg);
+    } on FormatException {
+      return; // the firmware ignores text that is neither a mode nor JSON
+    }
+    final m = cmd is Map && cmd['mode'] is String ? cmd['mode'] as String : '';
+    if (!controller.setReqModeByName(m, 'WebSocket')) note('unknown WebSocket command: $msg');
+  }
 
   // --- commands (the firmware's Serial commands) -------------------------------------------
 

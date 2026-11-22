@@ -30,7 +30,9 @@ class _HostHomeState extends State<HostHome> {
   void _reload() => setState(() { _sessions = context.read<V2IRepository>().mySessions(); });
 
   Future<void> _open(HostedSession s) async {
-    await Navigator.push(context, MaterialPageRoute(builder: (_) => IntersectionScreen(session: s)));
+    final options = await showModalBottomSheet<RunOptions>(context: context, showDragHandle: true, builder: (_) => const _RunSheet());
+    if (options == null || !mounted) return;
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => IntersectionScreen(session: s, options: options)));
     if (mounted) _reload();
   }
 
@@ -80,6 +82,62 @@ class _HostHomeState extends State<HostHome> {
       ),
       if (widget.me.role == 'ADMIN') ...[const SizedBox(height: 14), const EmergencyApprovals()],
     ]);
+  }
+}
+
+/// How vehicles reach this intersection.
+class _RunSheet extends StatefulWidget {
+  const _RunSheet();
+
+  @override
+  State<_RunSheet> createState() => _RunSheetState();
+}
+
+class _RunSheetState extends State<_RunSheet> {
+  bool _cloud = true, _lan = false, _lanEmergency = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('How vehicles connect', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+          CheckboxListTile(
+            key: const ValueKey('run-cloud'),
+            value: _cloud,
+            onChanged: (v) => setState(() => _cloud = v ?? false),
+            title: const Text('Cloud relay'),
+            subtitle: const Text('Drivers join with the code, over the internet (the server checks accounts and emergency status)'),
+          ),
+          CheckboxListTile(
+            key: const ValueKey('run-lan'),
+            value: _lan,
+            onChanged: (v) => setState(() => _lan = v ?? false),
+            title: const Text('LAN on this phone'),
+            subtitle: const Text('Like the ESP32: HTTP 8080, WebSocket 8081, UDP 4210 on this phone\'s Wi-Fi or hotspot; '
+                'Hardware mode on other phones can show it'),
+          ),
+          if (_lan)
+            SwitchListTile(
+              key: const ValueKey('run-lan-emergency'),
+              value: _lanEmergency,
+              onChanged: (v) => setState(() => _lanEmergency = v),
+              title: const Text('Accept emergency packets over the LAN'),
+              subtitle: const Text('No server checks the account on the LAN; the ESP32 prototype accepts them from anyone'),
+            ),
+          const SizedBox(height: 8),
+          FilledButton.icon(
+            key: const ValueKey('run-start'),
+            onPressed: _cloud || _lan
+                ? () => Navigator.pop(context, RunOptions(cloud: _cloud, lan: _lan, lanEmergency: _lanEmergency))
+                : null,
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('Run'),
+          ),
+        ]),
+      ),
+    );
   }
 }
 

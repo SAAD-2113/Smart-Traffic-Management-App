@@ -9,6 +9,7 @@ import '../../widgets/brand.dart';
 import '../../widgets/common.dart';
 import '../data/v2i_models.dart';
 import '../intersection/digital_intersection.dart';
+import '../transport/lan_server.dart';
 import '../transport/links.dart';
 import 'digital_app.dart';
 import 'digital_home.dart' show digitalGradient;
@@ -20,9 +21,22 @@ const intersectionLogTags = ['SIG', 'MODE', 'PLAN', 'PRIO', 'CONN', 'LOST', 'RX'
 
 /// This phone is the digital intersection. The controller and its transport live in
 /// [DigitalIntersection]; this screen only shows it and passes the operator's commands.
+/// Which transports the intersection uses (both at once is fine).
+class RunOptions {
+  const RunOptions({this.cloud = true, this.lan = false, this.lanEmergency = false});
+  final bool cloud;
+
+  /// LanTransport: HTTP 8080, WebSocket 8081, UDP 4210 on this phone.
+  final bool lan;
+
+  /// Accept "ty":1 over the LAN (no server checks the account there).
+  final bool lanEmergency;
+}
+
 class IntersectionScreen extends StatefulWidget {
-  const IntersectionScreen({super.key, required this.session});
+  const IntersectionScreen({super.key, required this.session, this.options = const RunOptions()});
   final HostedSession session;
+  final RunOptions options;
 
   @override
   State<IntersectionScreen> createState() => _IntersectionScreenState();
@@ -34,6 +48,17 @@ class _IntersectionScreenState extends State<IntersectionScreen> {
   late final AppLifecycleListener _lifecycle;
   DateTime? _pausedAt;
   String? _backgroundNote;
+  LanIntersectionLink? _lan;
+  List<String> _lanAddresses = const [];
+
+  IntersectionLink _link(DigitalServices services) {
+    final o = widget.options;
+    final links = <IntersectionLink>[
+      if (o.cloud) services.intersection(widget.session.id),
+      if (o.lan) _lan = services.lan(allowEmergency: o.lanEmergency),
+    ];
+    return links.length == 1 ? links.single : CompositeIntersectionLink(links);
+  }
 
   @override
   void initState() {
@@ -44,9 +69,10 @@ class _IntersectionScreenState extends State<IntersectionScreen> {
       name: s.name,
       centerLat: s.centerLat,
       centerLon: s.centerLon,
-      link: context.read<DigitalServices>().intersection(s.id),
+      link: _link(context.read<DigitalServices>()),
       clock: context.read<DigitalServices>().clock(),
     )..start();
+    if (_lan != null) LanIntersectionLink.addresses().then((a) => mounted ? setState(() => _lanAddresses = a) : null);
     _platform.keepScreenOn(true);
     _lifecycle = AppLifecycleListener(
       onHide: () => _pausedAt ??= DateTime.now(),
@@ -152,6 +178,10 @@ class _IntersectionScreenState extends State<IntersectionScreen> {
                               text: j.linkReason ?? 'Disconnected.', color: StatusColors.danger, icon: Icons.link_off),
                           gap,
                         ],
+                        if (_lan != null) ...[
+                          _LanCard(lan: _lan!, addresses: _lanAddresses),
+                          gap,
+                        ],
                         V3StatusRow(view: j),
                         gap,
                         if (two)
@@ -174,6 +204,40 @@ class _IntersectionScreenState extends State<IntersectionScreen> {
           }),
         ),
       ),
+    );
+  }
+}
+
+/// Where other devices on this Wi-Fi / hotspot reach the intersection.
+class _LanCard extends StatelessWidget {
+  const _LanCard({required this.lan, required this.addresses});
+  final LanIntersectionLink lan;
+  final List<String> addresses;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final ip = addresses.isEmpty ? '<this phone\'s IP>' : addresses.first;
+    return HwCard(
+      title: 'LAN (this phone\'s Wi-Fi or hotspot)',
+      icon: Icons.wifi_tethering,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        SelectableText(
+          [
+            for (final a in addresses.isEmpty ? [ip] : addresses) 'http://$a:${lan.boundHttpPort}   ws://$a:${lan.boundWsPort}/',
+          ].join('\n'),
+          key: const ValueKey('lan-addresses'),
+          style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Vehicle phones: Connection → LAN, address $ip:${lan.boundHttpPort}. Hardware mode on any phone: '
+          'controller $ip, port ${lan.boundWsPort}. curl / laptops: POST http://$ip:${lan.boundHttpPort}/api/vehicle, '
+          'UDP $ip:${lan.boundUdpPort}. Emergency packets over the LAN: ${lan.allowEmergency ? 'accepted (as on the ESP32)' : 'refused'}'
+          '${lan.refusedEmergency > 0 ? ' (${lan.refusedEmergency} refused)' : ''}.',
+          style: theme.textTheme.bodySmall,
+        ),
+      ]),
     );
   }
 }

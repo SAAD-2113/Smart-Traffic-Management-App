@@ -138,9 +138,13 @@ void main() {
 
     await tester.enterText(find.byKey(const ValueKey('session-name')), 'Campus gate');
     await tester.tap(find.byKey(const ValueKey('create-session')));
-    await tester.pump();
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(repo.calls, contains('create Campus gate 31.5 74.3'));
+    // how vehicles connect: the cloud relay is preselected
+    expect(find.text('How vehicles connect'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('run-start')));
+    await tester.pump();
+    await tester.pump();
     await tester.pump(const Duration(seconds: 3));
     expect(find.text('Campus gate'), findsWidgets);
     expect(find.text('Code ABC234'), findsOneWidget);

@@ -7,7 +7,7 @@ phones instead of ESP32 boards:
 |---|---|
 | `intersection_esp32.ino` on an ESP32 | an **ADMIN or MANAGER** phone runs the same controller, ported to Dart (`mobile/packages/v2i_core`) |
 | `vehicle_node.ino` on ESP32 / ESP8266 boards | **driver** phones run the same vehicle unit |
-| Wi-Fi AP + UDP 4210 / HTTP `/api/vehicle` | a transport: the server relay (cloud), later LAN or a bridge to the real ESP32 |
+| Wi-Fi AP + UDP 4210 / HTTP `/api/vehicle` | a transport: the server relay (cloud), the intersection phone's own LAN server, or a bridge to the real ESP32 |
 | TM1637 MM:SS displays, LEDs | the junction view with one head and one MM:SS display per lane |
 | Serial Monitor | the controller log, line for line the firmware's text |
 
@@ -150,6 +150,46 @@ The phones reconnect every 2 s and refresh the token every 10 minutes.
 on the vehicle and reported to the intersection's vehicle table. It includes the server hop and
 both phones' network; it is a measurement, not a setting.
 
+## LAN and hardware bridge (LanTransport, HardwareBridgeTransport)
+
+**LAN on the intersection phone.** When the host taps **Run the intersection**, the sheet
+offers the **Cloud relay** (default), **LAN on this phone**, or both at once. With LAN on, the
+phone serves what the ESP32 serves, on its Wi-Fi or hotspot:
+
+| ESP32 (firmware v3) | Intersection phone |
+|---|---|
+| `GET /api/state` on port 80 | `GET http://<phone>:8080/api/state` (built on request, as in the firmware) |
+| `GET /api/mode?m=auto\|fixed\|adaptive` | the same on 8080; logged `(from web /api/mode)`, same reply JSON |
+| `POST /api/vehicle` → ACK, or 400 `{"error":"bad packet"}` | the same on 8080 |
+| WebSocket `ws://192.168.4.1:81/`, state every 500 ms, mode commands | `ws://<phone>:8081/`, the same; `[APP ] WebSocket client n connected` and `unknown WebSocket command` lines as in the firmware |
+| UDP 4210, ACK back to the sender | the same (256-byte buffer) |
+
+Android apps cannot open ports below 1024, hence 8080 / 8081 instead of 80 / 81. A phone hotspot
+is usually 192.168.43.1 or 10.x.x.x, not 192.168.4.1: the intersection screen's **LAN** card lists
+the phone's addresses. **Hardware mode** on another phone shows the digital intersection with the
+four-lane dashboard: settings → controller = that address, port = 8081.
+
+On a LAN no server checks accounts, so emergency packets (`"ty"` not 0) are **refused** unless the
+host switches on **Accept emergency packets over the LAN** (which is how the ESP32 prototype
+behaves: anyone on its Wi-Fi may send them). A refused packet gets 400 over HTTP and no reply over
+UDP, and is counted on the LAN card.
+
+**Vehicles over the LAN.** In the drive setup of a joined session, **Connection → LAN** and the
+intersection phone's address (e.g. `192.168.43.1:8080`). The phone POSTs each packet to
+`/api/vehicle` and shows the ACK from the response; it keeps sending every 500 ms whether or not
+the last request was answered, like a UDP beacon, and shows RED after 3 s without an ACK.
+
+**Hardware bridge (the real ESP32).** On the driver home, **Drive at the ESP32 junction**: join the
+Wi-Fi `V2I-Junction-01` (password `v2i12345`), then the phone POSTs its packets to
+`http://192.168.4.1/api/vehicle` every 500 ms and shows the ESP32's ACK, so phones and ESP vehicles
+share one physical junction. The phone keeps its traffic on that Wi-Fi (it has no internet), as
+Hardware mode does. It uses the account's V2I id (1001+), which cannot collide with the board
+presets (101–202). The ESP32 cannot check accounts: the phone only sends `"ty":1` if an admin
+approved it.
+
+RTT is measured the same way on every transport (send → ACK by `seq`): over the LAN test on one
+machine (localhost) the samples were 6–9 ms; on real Wi-Fi it will be higher.
+
 ## Firmware behaviour kept as is
 
 Reported, not changed (see the Phase 1 notes):
@@ -169,4 +209,9 @@ Reported, not changed (see the Phase 1 notes):
 - Live GPS on a phone driving through a junction.
 - Background behaviour on Android (timers while the app is hidden).
 - Saving to Downloads (MediaStore) and the device name: written for Android, tested only through
-  a fake of the Android side, because no Android SDK is available in this environment.
+  a fake of the Android side.
+- LAN: tested with real sockets on one machine (HTTP, WebSocket, UDP, a vehicle over HTTP, and
+  Hardware mode's live source showing the digital intersection), not between two phones on a
+  hotspot; whether a given phone's hotspot lets clients reach ports 8080/8081 depends on the phone.
+- Hardware bridge: the HTTP protocol is the one tested against the LAN server (which mirrors the
+  ESP32's), but not against the physical ESP32.

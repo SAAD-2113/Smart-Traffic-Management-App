@@ -19,10 +19,35 @@ const vehicleLogTags = ['TX', 'BASIS', 'ACK', 'PRIO', 'SIM', 'TX!'];
 final _seqRe = RegExp(r'^\[ACK \] seq=(\d+) ');
 
 /// This phone is a vehicle. It shows only what the intersection's ACK says.
+/// How this vehicle reaches the intersection.
+enum VehicleConnection {
+  /// The server relay (joined with a code).
+  cloud,
+
+  /// POST to an intersection phone's LAN server.
+  lan,
+
+  /// HardwareBridgeTransport: POST to the real ESP32 at 192.168.4.1.
+  esp32,
+}
+
+/// The physical junction's address (v2i_common.h INTERSECTION_IP_STR).
+final esp32Base = Uri.parse('http://${v2i.INTERSECTION_IP_STR}');
+
 class VehicleScreen extends StatefulWidget {
-  const VehicleScreen({super.key, required this.session, required this.source});
+  const VehicleScreen({
+    super.key,
+    required this.session,
+    required this.source,
+    this.connection = VehicleConnection.cloud,
+    this.lanAddress,
+  });
   final JoinedSession session;
   final DriveSource source;
+  final VehicleConnection connection;
+
+  /// "192.168.43.1:8080" for [VehicleConnection.lan].
+  final String? lanAddress;
 
   @override
   State<VehicleScreen> createState() => _VehicleScreenState();
@@ -40,7 +65,11 @@ class _VehicleScreenState extends State<VehicleScreen> {
     final location = context.read<LocationService>();
     _vehicle = DigitalVehicle(
       session: widget.session,
-      link: context.read<DigitalServices>().vehicle(widget.session.sessionId),
+      link: switch (widget.connection) {
+        VehicleConnection.cloud => context.read<DigitalServices>().vehicle(widget.session.sessionId),
+        VehicleConnection.lan => context.read<DigitalServices>().http(Uri.parse('http://${widget.lanAddress}')),
+        VehicleConnection.esp32 => context.read<DigitalServices>().http(esp32Base, what: 'ESP32'),
+      },
       clock: context.read<DigitalServices>().clock(),
       source: widget.source,
       gps: () => location.fixes(
@@ -59,10 +88,13 @@ class _VehicleScreenState extends State<VehicleScreen> {
       _vehicle.start();
     }
     _platform.keepScreenOn(true);
+    // the ESP32's network has no internet: keep this app's traffic on Wi-Fi (as Hardware mode)
+    if (widget.connection == VehicleConnection.esp32) _platform.bindToWifi();
   }
 
   @override
   void dispose() {
+    if (widget.connection == VehicleConnection.esp32) _platform.releaseWifi();
     _platform.keepScreenOn(false);
     _vehicle.dispose();
     super.dispose();
@@ -90,7 +122,11 @@ class _VehicleScreenState extends State<VehicleScreen> {
                 ),
               ],
               child: Wrap(spacing: 8, runSpacing: 8, children: [
-                LinkPill(state: v.linkState, label: 'Relay'),
+                LinkPill(state: v.linkState, label: switch (widget.connection) {
+                  VehicleConnection.cloud => 'Relay',
+                  VehicleConnection.lan => 'LAN',
+                  VehicleConnection.esp32 => 'ESP32',
+                }),
                 HeaderPill(
                   label: v.intersectionOnline ? 'Intersection running' : 'Intersection not running',
                   dotColor: v.intersectionOnline ? StatusColors.ok : StatusColors.danger,

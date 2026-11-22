@@ -156,7 +156,7 @@ class DigitalVehicle extends ChangeNotifier {
   }
 
   bool _canSend() {
-    if (linkState != LinkState.online || !running) return false;
+    if (!running || (!link.connectionless && linkState != LinkState.online)) return false;
     if (source is LiveGpsDrive) return lastFix != null;
     if (source is ReplayDrive) return (source as ReplayDrive).points.isNotEmpty;
     return true;

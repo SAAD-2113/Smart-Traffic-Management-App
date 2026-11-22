@@ -15,6 +15,8 @@ import '../../services/location_service.dart';
 import '../../widgets/common.dart';
 import '../data/v2i_repository.dart';
 import '../transport/cloud_relay.dart';
+import '../transport/http_vehicle.dart';
+import '../transport/lan_server.dart';
 import '../transport/links.dart';
 import 'digital_home.dart';
 
@@ -35,6 +37,12 @@ class DigitalServices {
       );
 
   IntersectionLink intersection(String sessionId) => CloudIntersectionLink(_socket(sessionId));
+
+  /// LanTransport: this phone serves the ESP32's endpoints on its Wi-Fi / hotspot.
+  LanIntersectionLink lan({bool allowEmergency = false}) => LanIntersectionLink(allowEmergency: allowEmergency);
+
+  /// A vehicle that POSTs to `base`/api/vehicle (LAN intersection phone, or the real ESP32).
+  VehicleLink http(Uri base, {String what = 'LAN'}) => HttpVehicleLink(base, what: what);
   VehicleLink vehicle(String sessionId) => CloudVehicleLink(_socket(sessionId));
 }
 
