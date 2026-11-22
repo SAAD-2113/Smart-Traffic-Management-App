@@ -1,0 +1,7 @@
+include: package:lints/recommended.yaml
+
+linter:
+  rules:
+    # Names follow the firmware (e.g. effMode, rrLane) so the port can be read side by side.
+    non_constant_identifier_names: false
+    constant_identifier_names: false
