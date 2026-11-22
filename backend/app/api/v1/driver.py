@@ -17,6 +17,7 @@ from app.schemas.telemetry import (
     TrackingStartRequest,
     TrackingStopRequest,
 )
+from app.schemas.v2i import TripPointOut
 from app.services import emergency_service, live_service, telemetry_service, tracking_service
 
 router = APIRouter(prefix="/vehicles", tags=["driver: tracking, telemetry, emergency"])
@@ -55,6 +56,17 @@ async def list_sessions(
     db: AsyncSession = Depends(get_db),
 ) -> list[TrackingSessionOut]:
     return await tracking_service.list_sessions(db, user, vehicle_id, limit)
+
+
+@router.get("/{vehicle_id}/tracking/sessions/{session_id}/points", response_model=list[TripPointOut])
+async def trip_points(
+    vehicle_id: uuid.UUID,
+    session_id: uuid.UUID,
+    user: User = Depends(require_end_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[TripPointOut]:
+    """The recorded points of one of the driver's own trips (Digital V2I trip replay)."""
+    return await tracking_service.trip_points(db, user, vehicle_id, session_id)
 
 
 @router.post("/{vehicle_id}/telemetry", response_model=TelemetryBatchResult)

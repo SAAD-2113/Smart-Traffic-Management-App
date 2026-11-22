@@ -11,6 +11,7 @@ from app.models.traffic import (
     TrafficMetric,
 )
 from app.models.user import PasswordResetToken, RefreshToken, User
+from app.models.v2i import V2IMember, V2IProfile, V2ISession
 from app.models.vehicle import CodeCounter, Device, EmergencyAuthorization, Vehicle
 
 __all__ = [
@@ -32,6 +33,9 @@ __all__ = [
     "TrackingSession",
     "TrafficMetric",
     "User",
+    "V2IMember",
+    "V2IProfile",
+    "V2ISession",
     "Vehicle",
     "VehicleLiveState",
     "VehicleTelemetry",

@@ -166,3 +166,28 @@ async def close_all_for_vehicle(
     )
     for session in rows:
         await close_session(db, session, reason, now, end_emergency=end_emergency)
+
+
+async def trip_points(db: AsyncSession, owner: User, vehicle_id: uuid.UUID, session_id: uuid.UUID, limit: int = 5000):
+    """Recorded points of one of the owner's trips, oldest first (Digital V2I trip replay).
+    Only what was recorded: position, speed and heading when the phone gave them."""
+    from app.models.telemetry import VehicleTelemetry
+    from app.schemas.v2i import TripPointOut
+
+    session = await get_owned_session(db, owner, vehicle_id, session_id)
+    rows = (await db.scalars(
+        select(VehicleTelemetry)
+        .where(VehicleTelemetry.session_id == session.id)
+        .order_by(VehicleTelemetry.recorded_at, VehicleTelemetry.seq)
+        .limit(limit)
+    )).all()
+    if not rows:
+        return []
+    t0 = rows[0].recorded_at
+    return [
+        TripPointOut(
+            t=(r.recorded_at - t0).total_seconds(), lat=r.lat, lon=r.lon,
+            speed_kmh=None if r.speed_mps is None else r.speed_mps * 3.6, heading_deg=r.heading_deg,
+        )
+        for r in rows
+    ]

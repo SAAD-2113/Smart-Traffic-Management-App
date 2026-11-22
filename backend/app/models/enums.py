@@ -147,3 +147,18 @@ class SignalMode(StrEnum):
     EMERGENCY = "EMERGENCY"
     FLASHING = "FLASHING"
     OFF = "OFF"
+
+
+class V2IEmergencyStatus(StrEnum):
+    """Digital V2I: whether an account may send "ty":1. Only an admin can make it APPROVED."""
+
+    NONE = "NONE"
+    REQUESTED = "REQUESTED"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    REVOKED = "REVOKED"
+
+
+class V2ISessionStatus(StrEnum):
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
