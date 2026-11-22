@@ -78,8 +78,9 @@ dashboard on every push.
 - **Container:** the `Dockerfile` image run against an empty PostgreSQL with a provider-style URL: migrations,
   bootstrap (admin + corridor), login, demo, live WebSocket, per-client rate limits behind a proxy
   (`X-Forwarded-For`), and an idempotent restart.
-- **APK:** checked statically (manifest, permissions, components, dex references, signature). It has
-  not been installed on a physical phone in the build environment; do that first (below).
+- **APK:** 1.2.0 was checked statically (manifest, permissions, components, dex references, signature).
+  1.3.0 is built by CI with `flutter build apk --release`. Neither has been installed on a physical
+  phone in the build environment; do that first (below).
 
 ## Manual test plan on a phone
 

@@ -203,6 +203,8 @@ Reported, not changed (see the Phase 1 notes):
 
 ## What has not been verified
 
+- The 1.3.0 APK on a phone: CI builds it with `flutter build apk --release` (download: `dist/README.md`),
+  but it has not been installed on a device yet.
 - Two real phones over the deployed server: the relay is tested with real WebSockets in the
   backend tests and the phones' side with a fake socket and the in-app transport, but not
   end-to-end on devices.
