@@ -9,6 +9,7 @@ import '../core/network/api_client.dart';
 import '../core/storage/kv_store.dart';
 import '../core/theme/app_theme.dart';
 import '../data/local/telemetry_queue.dart';
+import '../digital/ui/digital_app.dart';
 import '../hardware/hardware_app.dart';
 import '../hardware/monitor.dart';
 import 'app_mode.dart';
@@ -33,8 +34,10 @@ class ModeRoot extends StatefulWidget {
 class _ModeRootState extends State<ModeRoot> {
   late final _modes = AppModeController(widget.store);
 
-  // Software-mode resources, created on first use and kept across mode switches.
+  // Software-mode resources, created on first use and kept across mode switches. Digital V2I
+  // uses the same API client (same server, same sign-in).
   ApiClient? _api;
+  ApiClient _apiClient(AppConfig config) => _api ??= ApiClient(config, TokenStore());
   Future<TelemetryQueue>? _queue;
 
   Future<TelemetryQueue> _openQueue() =>
@@ -80,9 +83,13 @@ class _ModeRootState extends State<ModeRoot> {
                     home: const Scaffold(body: Center(child: CircularProgressIndicator())),
                   );
                 }
-                _api ??= ApiClient(config, TokenStore());
-                return SmartTrafficApp(config: config, api: _api!, queue: snapshot.data!);
+                return SmartTrafficApp(config: config, api: _apiClient(config), queue: snapshot.data!);
               },
+            ),
+          AppMode.digital => DigitalApp(
+              key: const ValueKey('mode-digital'),
+              config: config,
+              api: _apiClient(config),
             ),
         },
       ),

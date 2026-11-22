@@ -28,6 +28,8 @@ dependencies:
   http: ^1.6.0
   web_socket_channel: ^3.0.3
   intl: ^0.20.3
+  # Join code shown as a QR code on the intersection phone (display only, no camera)
+  qr_flutter: ^4.1.0
   # Pure-Dart port of the V2I firmware v3 (Digital V2I mode, Hardware-mode simulator)
   v2i_core:
     path: packages/v2i_core
@@ -36,6 +38,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # fake WebSocket channels in the Digital V2I transport tests
+  stream_channel: ^2.1.0
 
 flutter:
   uses-material-design: true

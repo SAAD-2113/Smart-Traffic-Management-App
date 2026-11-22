@@ -41,7 +41,7 @@ class SwitchModeTile extends StatelessWidget {
         key: const ValueKey('switch-mode'),
         leading: const Icon(Icons.swap_horiz),
         title: const Text('Switch mode'),
-        subtitle: const Text('Hardware Prototype or Software System'),
+        subtitle: const Text('Hardware Prototype, Software System or Digital V2I'),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => switchAppMode(context),
       );

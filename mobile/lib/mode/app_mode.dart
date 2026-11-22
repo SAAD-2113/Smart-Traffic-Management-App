@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 
 import '../core/storage/kv_store.dart';
 
-/// The two ways the app can run.
+/// The ways the app can run.
 /// - [hardware]: offline monitor for the physical ESP32 intersection. No login, no server.
 /// - [software]: the full system (login, driver and manager apps) talking to the backend.
-enum AppMode { hardware, software }
+/// - [digital]: Digital V2I, the firmware v3 twin on phones: an admin phone is the intersection,
+///   driver phones are vehicles (login and server needed).
+enum AppMode { hardware, software, digital }
 
 /// Which mode is open, and whether the choice is remembered for the next launch.
 class AppModeController extends ChangeNotifier {

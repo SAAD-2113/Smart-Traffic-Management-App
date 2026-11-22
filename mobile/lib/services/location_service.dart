@@ -51,6 +51,13 @@ class LocationService {
     );
   }
 
+  /// One position now (Digital V2I: "use my location" for the junction centre).
+  Future<({double lat, double lon, double accuracyM})?> currentPosition() async {
+    if (await ensureAccess() != LocationAccess.granted) return null;
+    final p = await Geolocator.getCurrentPosition(locationSettings: const LocationSettings(accuracy: LocationAccuracy.best));
+    return (lat: p.latitude, lon: p.longitude, accuracyM: p.accuracy);
+  }
+
   Stream<bool> serviceEnabledChanges() =>
       Geolocator.getServiceStatusStream().map((s) => s == ServiceStatus.enabled);
 

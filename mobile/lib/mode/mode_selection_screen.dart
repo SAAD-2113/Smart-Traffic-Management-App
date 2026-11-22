@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_theme.dart';
 import 'app_mode.dart';
 
-/// First screen on launch (before any login): Hardware Prototype or Software System.
+/// First screen on launch (before any login): Hardware Prototype, Software System or Digital V2I.
 class ModeSelectionScreen extends StatefulWidget {
   const ModeSelectionScreen({super.key});
 
@@ -39,6 +39,15 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
         gradient: Brand.action,
         onTap: () => _choose(AppMode.software),
       ),
+      _ModeCard(
+        key: const ValueKey('mode-digital'),
+        icon: Icons.phonelink_ring_outlined,
+        title: 'Digital V2I',
+        subtitle: 'Phones as the intersection and the vehicles (firmware v3 twin)',
+        note: 'Sign in · needs the server',
+        gradient: const LinearGradient(colors: [Color(0xFF6D28D9), Color(0xFFA855F7)]),
+        onTap: () => _choose(AppMode.digital),
+      ),
     ];
     return Scaffold(
       body: DecoratedBox(
@@ -48,7 +57,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: wide ? 760 : 460),
+                constraints: BoxConstraints(maxWidth: wide ? 1040 : 460),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                   Center(
                     child: Container(
@@ -73,16 +82,17 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
                   if (wide)
                     IntrinsicHeight(
                       child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        Expanded(child: cards[0]),
-                        const SizedBox(width: 16),
-                        Expanded(child: cards[1]),
+                        for (var i = 0; i < cards.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 16),
+                          Expanded(child: cards[i]),
+                        ],
                       ]),
                     )
-                  else ...[
-                    cards[0],
-                    const SizedBox(height: 14),
-                    cards[1],
-                  ],
+                  else
+                    for (var i = 0; i < cards.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 14),
+                      cards[i],
+                    ],
                   const SizedBox(height: 18),
                   Center(
                     child: InkWell(
@@ -145,13 +155,13 @@ class _ModeCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(18),
           child: Row(children: [
             Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(18)),
-              child: Icon(icon, color: Colors.white, size: 34),
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(gradient: gradient, borderRadius: BorderRadius.circular(17)),
+              child: Icon(icon, color: Colors.white, size: 31),
             ),
             const SizedBox(width: 16),
             Expanded(

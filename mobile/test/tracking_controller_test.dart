@@ -26,6 +26,9 @@ class FakeLocation implements LocationService {
   Stream<bool> serviceEnabledChanges() => const Stream.empty();
 
   @override
+  Future<({double lat, double lon, double accuracyM})?> currentPosition() async => null;
+
+  @override
   Future<bool> openAppSettings() async => true;
 
   @override

@@ -65,8 +65,11 @@ void main() {
     expect(find.text('Remember my choice'), findsOneWidget);
     expect(find.text('Sign in'), findsNothing);
 
+    expect(find.text('Digital V2I'), findsOneWidget);
+    await tester.ensureVisible(find.text('Remember my choice'));
     await tester.tap(find.text('Remember my choice'));
     await tester.pump();
+    await tester.ensureVisible(find.text('Hardware Prototype'));
     await tester.tap(find.text('Hardware Prototype'));
     await tester.pump();
     await tester.pump();
