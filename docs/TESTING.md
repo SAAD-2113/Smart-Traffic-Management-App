@@ -4,11 +4,14 @@
 
 ```powershell
 cd traffic_engine;  uv run --group dev pytest        # 56 tests, pure Python
-cd backend;         uv run pytest                    # 116 tests, throwaway SQLite per test (no Docker needed)
-cd mobile;          flutter analyze; flutter test    # 67 tests
+cd backend;         uv run pytest                    # 134 tests, throwaway SQLite per test (no Docker needed)
+cd mobile/packages/v2i_core; dart pub get; dart test # 84 tests, the firmware v3 port (pure Dart)
+cd mobile;          flutter analyze; flutter test    # 98 tests
 ```
 
-CI (`.github/workflows/ci.yml`) runs all three suites, then builds the Android APK and the web
+`flutter analyze` in `mobile/` also analyzes `packages/v2i_core`, so run `dart pub get` there first.
+
+CI (`.github/workflows/ci.yml`) runs all four suites, then builds the Android APK and the web
 dashboard on every push.
 
 ## What is covered
@@ -42,6 +45,10 @@ dashboard on every push.
 | Hardware mode: frame parsing (example frame, missing/wrong fields, versions), countdown anchored to `remaining_ms` (re-anchor up and down), STALE/OFFLINE freeze, restart detection, event log, emergency popup | 17 | `test/hardware/frame_test.dart`, `monitor_test.dart` |
 | Hardware simulator: valid v2 frames, NS/EW sequence with 3 s yellow and 2 s all-red, green = clamp(6 + 2 x demand, 10, 60), 500 ms cadence, countdown ends exactly at the lamp change, mode button, emergencies, V2I loss | 7 | `simulator_test.dart` |
 | Hardware dashboard: every card shows the example frame, dashes for missing fields, emergency popup (5 s, dismiss) and banner, V2I-loss / version / simulated banners, STALE freeze | 5 | `dashboard_test.dart` |
+| Firmware v3 port (`v2i_core`): README cases 1-4, Webster hand check, AUTO switching, manual overrides, emergency preemption / max hold / cooldown / resume, every classifier branch, packet and ACK text, bad packets, seq-gap loss, state-JSON key order against the firmware source, a 20-minute 11-vehicle run without red-light entries, metrics computed from the log | 84 | `mobile/packages/v2i_core/test/` |
+| Hardware mode with firmware v3 frames: parsing (missing / wrong fields, older layout), per-lane MM:SS displays and freeze, derived events, restart detection, four-lane layout, the v2i_core twin as simulator | 9 | `test/hardware/v3_test.dart` |
+| Digital V2I app: intersection and vehicle controllers over the loopback, relay client against a fake socket (token, reconnect, refresh), host and driver widget flows, injector / recording / export, LAN server over real sockets (HTTP, WebSocket, UDP, a phone vehicle with measured RTT, Hardware mode reading it) | 22 | `test/digital/` |
+| Digital V2I backend: role from the server (never the client), vehicle ids from 1001, emergency requested by the user and set by an admin, sessions / join codes / close, packet validation against the firmware limits, trip replay owner-only, export copies host-only; relay WebSocket: non-members and bad auth refused, pos / ACK round trip (an ACK reaches only its own vehicle; emergency packets only from the authorised account; no other vehicle's id; vehicles cannot send ACKs or states), revoked emergency applied to the open connection, intersection offline and session close, rate limit | 17 | `backend/tests/test_v2i.py`, `test_v2i_ws.py` |
 
 ## End-to-end checks done during development
 

@@ -3,9 +3,11 @@
 Final-year project: smartphone vehicle telemetry feeding a multi-intersection adaptive traffic
 management engine, with a driver app, a traffic-manager dashboard, SUMO simulation and a demo mode.
 
-- **Two modes, chosen when the app starts:** **Hardware Prototype**, a read-only offline monitor
-  for the physical ESP32 intersection (no login), and **Software System**, the full app below
-  (see `docs/HARDWARE_MODE.md`).
+- **Three modes, chosen when the app starts:** **Hardware Prototype**, a read-only offline monitor
+  for the physical ESP32 intersection (no login, see `docs/HARDWARE_MODE.md`); **Digital V2I**, a
+  digital twin of the V2I firmware v3 where one phone is the intersection and other phones are
+  vehicles, over the server's relay or a local Wi-Fi / hotspot (see `docs/DIGITAL_V2I.md`); and
+  **Software System**, the full app below.
 - **Driver / vehicle app (Android):** register a vehicle, get a Vehicle ID, start/stop GPS tracking with
   an offline queue, trip history, and emergency mode for authorized emergency vehicles.
 - **Manager app (Android and web):** a traffic control centre dashboard that shows each
@@ -26,7 +28,7 @@ data (demo fleet, SUMO) is always labelled as such and kept separate from real v
 |---|---|---|
 | `backend/` | FastAPI service: auth, roles, vehicles, devices, tracking, telemetry, emergency, intersections, traffic, signals, live WebSocket, demo, controller API | Phases 2-9 done |
 | `traffic_engine/` | Pure-Python traffic analysis (mapping, metrics, data quality, network state), controllers (fixed, demand-proportional with coordination, emergency priority) and the demo fleet simulator | Done |
-| `mobile/` | Flutter app: driver and manager roles in one app (Android APK + web dashboard) | Done |
+| `mobile/` | Flutter app: driver and manager roles in one app (Android APK + web dashboard); `mobile/packages/v2i_core`: pure-Dart port of the V2I firmware v3 used by Digital V2I and the Hardware-mode simulator | Done |
 | `sumo_bridge/` | TraCI bridge between Eclipse SUMO and the backend, corridor generator | Done |
 | `tools/` | `hardware_test_server.py`: imitates the ESP32 controller for testing Hardware mode | |
 | `infra/` | Docker Compose for PostgreSQL (+PostGIS) | Done |
@@ -40,6 +42,7 @@ data (demo fleet, SUMO) is always labelled as such and kept separate from real v
    anywhere), or **on your PC** with `docs/SETUP_WINDOWS.md` (phones on the same Wi-Fi).
 2. `docs/ARCHITECTURE.md`: system design, telemetry packet spec, traffic processing, emergency flow.
 3. `docs/HARDWARE_MODE.md`: the ESP32 intersection monitor (Hardware mode), its simulator and test server.
+   `docs/DIGITAL_V2I.md`: Digital V2I mode (phones as intersection and vehicles), metrics and exports.
 4. `docs/API.md`, `docs/SECURITY_AND_PRIVACY.md`, `docs/TESTING.md`.
 
 ## Quick start (development)
@@ -57,4 +60,4 @@ login screen and enter `http://<PC IP>:8000`. For a cloud server, enter its `htt
 
 ## Tests
 
-`traffic_engine`: 56 · `backend`: 116 · `mobile`: 67 (see `docs/TESTING.md`).
+`traffic_engine`: 56 · `backend`: 134 · `mobile`: 98 · `mobile/packages/v2i_core`: 84 (see `docs/TESTING.md`).
