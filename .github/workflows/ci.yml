@@ -52,6 +52,13 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      # The pure-Dart firmware port has its own pubspec (dev dependency: package:test).
+      # Without its pub get, `flutter analyze` below cannot resolve its tests.
+      - name: v2i_core (firmware v3 port) dependencies and tests
+        working-directory: mobile/packages/v2i_core
+        run: |
+          dart pub get
+          dart test
       - run: flutter analyze --no-fatal-infos
       - run: flutter test
       - name: Configure release signing (only when the repository has the secrets)
