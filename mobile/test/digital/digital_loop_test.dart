@@ -102,7 +102,7 @@ void main() {
     expect(r.junction.v3!.switchPending, isTrue);
   });
 
-  test('replay sends the recorded points at their recorded times, then stops', () async {
+  test('replay sends one recorded point per 500 ms and loops (TEST_SOURCE 1)', () async {
     final r = Rig();
     const geo = v2i.Geometry(centerLat: lat0, centerLon: lon0);
     TripPoint at(double t, double northM, double kmh) {
@@ -110,17 +110,15 @@ void main() {
       return TripPoint(t: t, lat: la, lon: lo, speedKmh: kmh, headingDeg: 180);
     }
 
-    final v = r.add(1003, ReplayDrive([at(0, 120, 30), at(2, 100, 30), at(4, 60, 20), at(6, 30, 3)]));
-    await r.run(5000);
-    final veh = r.junction.controller.findVeh(1003)!;
-    expect(veh.st, v2i.V2IState.approaching);
-    expect(veh.dist, closeTo(60, 0.5), reason: 'the point recorded at 4 s, sent until 6 s');
-    await r.run(2500);
-    expect(r.junction.controller.findVeh(1003)!.st, v2i.V2IState.queued);
-    await r.run(5000);
-    expect(v.replayFinished, isTrue);
-    expect(r.junction.controller.findVeh(1003), isNull, reason: 'removed by the controller 3 s after the last packet');
-    expect(r.junction.log.lines.map((l) => l.text), contains(startsWith('[LOST] id=1003 Phone')));
+    // recorded 10 s apart: the replay still sends one row per beacon
+    r.add(1003, ReplayDrive([at(0, 120, 30), at(10, 100, 30), at(20, 60, 20), at(30, 30, 3)]));
+    await r.run(3900); // beacons at 1.0, 1.5, ... 4.5 s
+    final samples = r.junction.recorder.recording.samples.where((x) => x.id == 1003).toList();
+    expect(samples.length, 8, reason: 'one packet per 500 ms');
+    expect([for (final x in samples) x.distM.round()], [120, 100, 60, 30, 120, 100, 60, 30]);
+    expect(samples.map((x) => x.st).toSet(), {v2i.V2IState.approaching, v2i.V2IState.queued});
+    expect(samples[3].st, v2i.V2IState.queued, reason: '30 m at 3 km/h');
+    expect(r.junction.controller.findVeh(1003)!.tl, -1, reason: 'no tl: the trip\'s arm is not known');
   });
 
   test('live GPS: nothing before the first fix; no tl; no hdg while slow; [BASIS] matches the intersection', () async {

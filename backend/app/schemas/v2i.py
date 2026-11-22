@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from app.models.enums import V2IEmergencyStatus, V2ISessionStatus
 from app.schemas.common import ApiInput, ApiModel
@@ -79,6 +79,24 @@ class SessionStateOut(ApiModel):
     intersection_online: bool
     received_at: datetime | None = None
     state: dict | None = None
+
+
+class ExportIn(ApiInput):
+    # the file is stored exactly as sent (ApiInput would strip surrounding whitespace)
+    model_config = ConfigDict(**{**ApiInput.model_config, "str_strip_whitespace": False})
+
+    filename: str = Field(min_length=1, max_length=120, pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+    content_type: str = Field(pattern=r"^(text/csv|text/plain)$")
+    content: str = Field(max_length=5_000_000)
+
+
+class ExportOut(ApiModel):
+    id: uuid.UUID
+    session_id: uuid.UUID
+    filename: str
+    content_type: str
+    size: int
+    created_at: datetime
 
 
 class TripPointOut(ApiModel):

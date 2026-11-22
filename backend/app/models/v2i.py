@@ -3,7 +3,7 @@ join it as vehicles. Roles, vehicle ids and the emergency flag live here, never 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Float, ForeignKey, Index, Integer, String, UniqueConstraint, Uuid
+from sqlalchemy import Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.time import utcnow
@@ -61,3 +61,20 @@ class V2IMember(Base):
     session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("v2i_sessions.id", ondelete="CASCADE"), nullable=False)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
     joined_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)
+
+
+class V2IExport(Base):
+    """A copy of an export (CSV / log text) uploaded by the session's host, so the report data
+    survives the phone. Text only, at most 5 MB per file."""
+
+    __tablename__ = "v2i_exports"
+    __table_args__ = (Index("ix_v2i_exports_session_created", "session_id", "created_at"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("v2i_sessions.id", ondelete="CASCADE"), nullable=False)
+    uploaded_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    filename: Mapped[str] = mapped_column(String(120), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, nullable=False)

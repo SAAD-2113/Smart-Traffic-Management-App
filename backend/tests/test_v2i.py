@@ -170,3 +170,25 @@ async def test_trip_points_for_replay_are_the_owners_only(client, as_role, sessi
     other, _ = await driver_with_vehicle(client, as_role, email="other@example.com", install="other-install-0001")
     r = await client.get(f"{API}/vehicles/{vehicle_id}/tracking/sessions/{trip}/points", headers=other)
     assert r.status_code == 404
+
+
+async def test_export_server_copy_for_the_host_only(as_role, client):
+    host = await as_role(UserRole.ADMIN)
+    other = await as_role(UserRole.MANAGER)
+    driver = await as_role(UserRole.END_USER)
+    s = (await client.post(f"{API}/v2i/sessions", headers=host, json={"name": "G", "centerLat": 31.5, "centerLon": 74.3})).json()
+    body = {"filename": "v2i_G_20261122-1030_metrics.csv", "contentType": "text/csv",
+            "content": "# digital simulation, measured on Pixel 8 on 2026-11-22 10:30\nmetric,scope,value\n"}
+    r = await client.post(f"{API}/v2i/sessions/{s['id']}/exports", headers=host, json=body)
+    assert r.status_code == 201 and r.json()["size"] == len(body["content"].encode())
+    export_id = r.json()["id"]
+    assert (await client.post(f"{API}/v2i/sessions/{s['id']}/exports", headers=other, json=body)).status_code == 404
+    assert (await client.post(f"{API}/v2i/sessions/{s['id']}/exports", headers=driver, json=body)).status_code == 403
+    bad = dict(body, filename="../../etc/passwd")
+    assert (await client.post(f"{API}/v2i/sessions/{s['id']}/exports", headers=host, json=bad)).status_code == 422
+    listed = (await client.get(f"{API}/v2i/sessions/{s['id']}/exports", headers=host)).json()
+    assert [x["filename"] for x in listed] == [body["filename"]]
+    d = await client.get(f"{API}/v2i/exports/{export_id}", headers=host)
+    assert d.status_code == 200 and d.text == body["content"]
+    assert 'attachment; filename="v2i_G_20261122-1030_metrics.csv"' == d.headers["content-disposition"]
+    assert (await client.get(f"{API}/v2i/exports/{export_id}", headers=other)).status_code == 404

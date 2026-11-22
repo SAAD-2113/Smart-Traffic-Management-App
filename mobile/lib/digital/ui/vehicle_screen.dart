@@ -16,6 +16,7 @@ import 'digital_home.dart' show digitalGradient;
 import 'widgets.dart';
 
 const vehicleLogTags = ['TX', 'BASIS', 'ACK', 'PRIO', 'SIM', 'TX!'];
+final _seqRe = RegExp(r'^\[ACK \] seq=(\d+) ');
 
 /// This phone is a vehicle. It shows only what the intersection's ACK says.
 class VehicleScreen extends StatefulWidget {
@@ -117,7 +118,18 @@ class _VehicleScreenState extends State<VehicleScreen> {
                       const SizedBox(height: 14),
                       _DetailsCard(v: v),
                       const SizedBox(height: 14),
-                      LogCard(log: v.log, tags: vehicleLogTags, title: 'Vehicle log (Serial Monitor)'),
+                      LogCard(
+                        log: v.log,
+                        tags: vehicleLogTags,
+                        title: 'Packet log (Serial Monitor)',
+                        // the firmware's [ACK ] line has no RTT: shown after it, measured by seq
+                        suffix: (l) {
+                          if (l.tag != 'ACK') return null;
+                          final seq = int.tryParse(_seqRe.firstMatch(l.text)?.group(1) ?? '');
+                          final rtt = seq == null ? null : v.unit.rttBySeq[seq];
+                          return rtt == null ? null : '<- RTT $rtt ms';
+                        },
+                      ),
                     ],
                   ]),
                 ),
@@ -244,7 +256,7 @@ class _DetailsCard extends StatelessWidget {
           Figure('RTT median', med == null ? '—' : '$med ms (${rtt.length})'),
           if (v.emergency)
             Figure('Detection → green', v.detectionToGreenS == null ? 'not yet' : '${v.detectionToGreenS!.toStringAsFixed(1)} s'),
-          if (v.source is ReplayDrive) Figure('Replay', v.replayFinished ? 'finished' : 'point ${v.replayIndex + 1} of ${v.replayLength}'),
+          if (v.source is ReplayDrive) Figure('Replay (loops)', 'point ${v.replayIndex + 1} of ${v.replayLength}'),
           if (v.lastFix != null) Figure('GPS accuracy', '±${v.lastFix!.accuracyM.toStringAsFixed(0)} m'),
         ]),
         if (v.lastError != null) ...[

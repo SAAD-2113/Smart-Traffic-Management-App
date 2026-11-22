@@ -58,14 +58,69 @@ Both phones need the server (Software System server address) and an account.
      15 s after leaving. It sends `tl` (the arm), like the firmware's test data.
    - **Live GPS**: the phone's position, speed and heading (heading left out below 1 m/s, where
      phones report noise). No `tl`. Location permission is needed.
-   - **My trip**: one of the driver's trips recorded in the Software System, sent at its recorded
-     times. Between two recorded points the last one is repeated; nothing is interpolated. The
-     screen says how close the trip comes to the junction centre.
+   - **My trip**: one of the driver's trips recorded in the Software System, **one recorded point
+     per 500 ms, looping**, exactly like the firmware's TEST_SOURCE 1 with `REPLAY[]`. No `tl`
+     (the trip's arm is not known); a recorded heading is sent only where the recorded speed was
+     at least 1 m/s. The screen says how close the trip comes to the junction centre.
 4. **Start.** The phone sends a `pos` packet every 500 ms and shows only what the ACK says: the
    signal of its lane, counted down locally between ACKs, the lane and state the intersection
    decided, the mode, PRIORITY. With no ACK for 3 s it shows RED. The **Basis** line is the same
    lane decision run on the phone for display only. Emergency vehicles also show the time from
    the first lane assignment to green.
+
+## Test injector (demo with one phone)
+
+On the intersection screen, **Test injector** adds virtual vehicles that run the firmware's
+vehicle simulation inside the intersection phone and obey its ACKs like the ESP vehicles:
+- the six firmware presets as one-tap chips (ids 101–104, 201, 202 as on the boards; presets 5
+  and 6 wait 30 s / 70 s out of range, then drive in as emergency vehicles);
+- a custom vehicle: arm, queue slot, normal or emergency, delay (start 100 m / 30 km/h, or
+  140 m / 50 km/h for emergency, as in the presets), id 501–999.
+
+They show "inject" as their device in the vehicle table and in exports. Tap a chip again (or ✕)
+to switch one off: it stops sending and the controller removes it 3 s later, as in README case 4.
+
+## Recording, metrics and export
+
+Every intersection session records, from the moment it starts:
+- the **full controller log** (every Serial-Monitor line, not only the last 5000 on screen),
+- a **snapshot every second** (mode, requested mode, phase, current lane, each lane's signal,
+  time left, queued, approaching, Qw, vehicles, congestion, emergency lane, priority),
+- **every accepted packet** as the intersection decided it (id, type, device, lane, state,
+  distance, speed, packet and loss counters),
+- every **RTT** a vehicle phone reports.
+
+**Metrics** (header button on the intersection screen) are computed from these records only:
+
+| Metric | How |
+|---|---|
+| Wait (average, max; per vehicle) | from the packet where a vehicle becomes QUEUED on a lane that is not green, to that lane's next `[SIG ] lane X GREEN` line; counted only if the vehicle is still waiting on that lane then. Resolution: the 500 ms packet interval. |
+| Throughput per lane | entries into the junction box (CROSSING) from each lane; veh/h = count / recorded time |
+| Cycle length over time | green start → next green start of the same lane, from the `[SIG]` lines; the planned C0 of every `[PLAN]` line is exported too |
+| Emergency detection → green | the intersection's `[PRIO] lane X GREEN for emergency id=…, x s after its request` lines (the vehicle phone shows its own measurement) |
+| Packet loss | the controller's counters (gaps in `seq`) per vehicle, added up across removals |
+| RTT | samples measured on the vehicle phones; median and p95 (injected vehicles are not counted: no network) |
+
+**Fixed vs Adaptive** (from the metrics screen) runs the injected vehicles (or the six presets
+when none are injected) twice with the same random seed, once with the mode forced FIXED and once
+in AUTO, headless on a fake clock in a background isolate, and shows both side by side. The
+speed is measured and shown ("digital simulation, N× real time").
+
+**Export CSV + raw log** writes four files (and the comparison writes a fifth):
+
+| File | Content |
+|---|---|
+| `v2i_<session>_<date>_events.log` | time since start, phone time, and each controller line unchanged |
+| `…_snapshots.csv` | one row per second |
+| `…_vehicles.csv` | one row per accepted packet |
+| `…_metrics.csv` | metric, scope, value, unit, how it was obtained |
+| `…_fixed_vs_adaptive.csv` | the comparison, both runs side by side |
+
+Every file starts with `#` lines: **"digital simulation, measured on <device> on <date>"**, the
+session, the transport, and for the comparison the scenario and the measured speed-up (read with
+`pandas.read_csv(path, comment='#')`). On Android the files go to **Downloads/DigitalV2I**
+(MediaStore; on Android 9 and older, the app's own Downloads folder); for a cloud session a copy is
+also stored on the server (`/api/v1/v2i/sessions/{id}/exports`, host and admins only).
 
 ## Cloud relay (CloudRelayTransport)
 
@@ -113,3 +168,5 @@ Reported, not changed (see the Phase 1 notes):
   end-to-end on devices.
 - Live GPS on a phone driving through a junction.
 - Background behaviour on Android (timers while the app is hidden).
+- Saving to Downloads (MediaStore) and the device name: written for Android, tested only through
+  a fake of the Android side, because no Android SDK is available in this environment.

@@ -75,7 +75,11 @@ class LogCard extends StatefulWidget {
     this.rxOn,
     this.onToggleRx,
     this.maxShown = 300,
+    this.suffix,
   });
+
+  /// Extra text shown after a line (not part of the firmware's line), e.g. an ACK's RTT.
+  final String? Function(v2i.LogLine line)? suffix;
 
   final v2i.V2ILog log;
 
@@ -140,8 +144,9 @@ class _LogCardState extends State<LogCard> {
                 itemCount: lines.length,
                 itemBuilder: (_, i) {
                   final l = lines[i];
+                  final extra = widget.suffix?.call(l);
                   return Text(
-                    '${_time(l)}  ${l.text}',
+                    '${_time(l)}  ${l.text}${extra == null ? '' : '   $extra'}',
                     style: TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 11.5,

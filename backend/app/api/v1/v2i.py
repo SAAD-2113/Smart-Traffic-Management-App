@@ -9,7 +9,7 @@ import contextlib
 import json
 import uuid
 
-from fastapi import APIRouter, Depends, Query, Request, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, Query, Request, Response, WebSocket, WebSocketDisconnect, status
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.api.deps import get_current_user, require_admin, require_end_user, require_manager
@@ -25,6 +25,8 @@ from app.repositories import user_repo
 from app.schemas.v2i import (
     EmergencyDecisionIn,
     EmergencyRequestIn,
+    ExportIn,
+    ExportOut,
     JoinedOut,
     JoinIn,
     ProfileOut,
@@ -104,6 +106,34 @@ async def session_state(
     session_id: uuid.UUID, user: User = Depends(require_manager), db: AsyncSession = Depends(get_db)
 ) -> SessionStateOut:
     return await v2i_service.session_state(db, user, session_id)
+
+
+@router.post("/sessions/{session_id}/exports", response_model=ExportOut, status_code=status.HTTP_201_CREATED)
+@limiter.limit("60/hour")
+async def upload_export(
+    request: Request,
+    session_id: uuid.UUID,
+    body: ExportIn,
+    user: User = Depends(require_manager),
+    db: AsyncSession = Depends(get_db),
+) -> ExportOut:
+    return await v2i_service.upload_export(db, user, session_id, body)
+
+
+@router.get("/sessions/{session_id}/exports", response_model=list[ExportOut])
+async def list_exports(
+    session_id: uuid.UUID, user: User = Depends(require_manager), db: AsyncSession = Depends(get_db)
+) -> list[ExportOut]:
+    return await v2i_service.list_exports(db, user, session_id)
+
+
+@router.get("/exports/{export_id}")
+async def download_export(
+    export_id: uuid.UUID, user: User = Depends(require_manager), db: AsyncSession = Depends(get_db)
+) -> Response:
+    e = await v2i_service.get_export(db, user, export_id)
+    return Response(content=e.content, media_type=f"{e.content_type}; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="{e.filename}"'})
 
 
 @router.post("/join", response_model=JoinedOut)

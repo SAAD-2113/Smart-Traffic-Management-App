@@ -12,6 +12,8 @@ import '../intersection/digital_intersection.dart';
 import '../transport/links.dart';
 import 'digital_app.dart';
 import 'digital_home.dart' show digitalGradient;
+import 'injector_card.dart';
+import 'metrics_screen.dart';
 import 'widgets.dart';
 
 const intersectionLogTags = ['SIG', 'MODE', 'PLAN', 'PRIO', 'CONN', 'LOST', 'RX', 'RX!', 'MISMATCH', 'STAT', 'APP'];
@@ -101,7 +103,9 @@ class _IntersectionScreenState extends State<IntersectionScreen> {
               final left = <Widget>[
                 _ModeCard(junction: j),
                 gap,
-                V3SignalCard(view: j, title: 'Digital intersection'),
+                InjectorCard(junction: j),
+                gap,
+                V3SignalCard(view: j, title: 'Digital intersection', center: (widget.session.centerLat, widget.session.centerLon)),
                 gap,
                 V3TimingCard(view: j),
                 gap,
@@ -189,6 +193,13 @@ class _Header extends StatelessWidget {
       icon: Icons.traffic,
       gradient: digitalGradient,
       actions: [
+        IconButton(
+          key: const ValueKey('open-metrics'),
+          tooltip: 'Metrics, comparison and export',
+          onPressed: () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => MetricsScreen(junction: junction, session: session))),
+          icon: const Icon(Icons.analytics_outlined, color: Colors.white),
+        ),
         IconButton(key: const ValueKey('stop-intersection'), tooltip: 'Stop', onPressed: onStop, icon: const Icon(Icons.stop_circle_outlined, color: Colors.white)),
       ],
       child: Wrap(spacing: 8, runSpacing: 8, children: [

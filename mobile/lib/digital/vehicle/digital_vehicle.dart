@@ -34,8 +34,9 @@ class LiveGpsDrive extends DriveSource {
   String get label => 'Live GPS';
 }
 
-/// One of the driver's recorded trips, sent at its recorded times (no interpolation: between
-/// two recorded points the last point is sent again, as a beacon repeats its last fix).
+/// One of the driver's recorded trips, one recorded point per 500 ms and looping, exactly like
+/// the firmware's TEST_SOURCE 1 with REPLAY[]. No "tl" (the trip's arm is not known). A recorded
+/// heading is sent only where the recorded speed was at least 1 m/s, as for live GPS.
 class ReplayDrive extends DriveSource {
   const ReplayDrive(this.points, {this.name = 'Recorded trip'});
   final List<TripPoint> points;
@@ -91,11 +92,10 @@ class DigitalVehicle extends ChangeNotifier {
   String? endedReason;
   bool running = false;
   GpsFix? lastFix;
-  bool replayFinished = false;
 
   Timer? _loop;
   StreamSubscription<GpsFix>? _gpsSub;
-  int _startMs = 0, _lastUi = -1 << 40, _lastRttSent = -1 << 40, _acksSeen = 0;
+  int _lastUi = -1 << 40, _lastRttSent = -1 << 40, _acksSeen = 0;
 
   v2i.V2ILog get log => unit.log;
 
@@ -114,7 +114,10 @@ class DigitalVehicle extends ChangeNotifier {
       ),
       clock: clock,
       hw: hw,
-      source: sim != null ? v2i.VehicleSource.simulation : v2i.VehicleSource.external,
+      source: sim != null
+          ? v2i.VehicleSource.simulation
+          : (source is ReplayDrive ? v2i.VehicleSource.replay : v2i.VehicleSource.external),
+      replay: source is ReplayDrive ? _replayTable((source as ReplayDrive).points) : v2i.REPLAY,
       geometry: v2i.Geometry(centerLat: session.centerLat, centerLon: session.centerLon),
       sendTestLane: sim != null, // the simulated drive knows its arm, like the firmware's test data
       send: link.send,
@@ -145,11 +148,9 @@ class DigitalVehicle extends ChangeNotifier {
         notifyListeners();
       };
     running = true;
-    _startMs = clock.nowMs();
     link.start();
     unit.start();
     if (source is LiveGpsDrive) _gpsSub = gps?.call().listen(_onFix);
-    if (source is ReplayDrive) _replayStep();
     if (useTimer) _loop = Timer.periodic(tick, (_) => step());
     notifyListeners();
   }
@@ -157,7 +158,7 @@ class DigitalVehicle extends ChangeNotifier {
   bool _canSend() {
     if (linkState != LinkState.online || !running) return false;
     if (source is LiveGpsDrive) return lastFix != null;
-    if (source is ReplayDrive) return !replayFinished;
+    if (source is ReplayDrive) return (source as ReplayDrive).points.isNotEmpty;
     return true;
   }
 
@@ -182,7 +183,6 @@ class DigitalVehicle extends ChangeNotifier {
   /// One pass of the vehicle's loop().
   void step() {
     if (!running) return;
-    if (source is ReplayDrive) _replayStep();
     unit.tick();
     final now = clock.nowMs();
     if (now - _lastUi >= 100) {
@@ -213,30 +213,18 @@ class DigitalVehicle extends ChangeNotifier {
     unit.setExternalFix(f.lat, f.lon, speed == null || speed < 0 ? 0 : speed * 3.6, hdgValid ? heading : null);
   }
 
-  void _replayStep() {
-    final pts = (source as ReplayDrive).points;
-    if (pts.isEmpty) {
-      replayFinished = true;
-      return;
-    }
-    final elapsed = (clock.nowMs() - _startMs) / 1000.0;
-    if (elapsed > pts.last.t + 1.0) {
-      replayFinished = true; // stops sending: the intersection removes the vehicle after 3 s
-      return;
-    }
-    var i = 0;
-    while (i + 1 < pts.length && pts[i + 1].t <= elapsed) {
-      i++;
-    }
-    final p = pts[i];
-    unit.setExternalFix(p.lat, p.lon, p.speedKmh ?? 0, p.headingDeg != null && (p.speedKmh ?? 0) >= headingMinSpeedMps * 3.6 ? p.headingDeg : null);
-    _replayIndex = i;
-  }
+  static List<v2i.ReplayPoint> _replayTable(List<TripPoint> points) => [
+        for (final p in points)
+          v2i.ReplayPoint(
+            p.lat,
+            p.lon,
+            p.speedKmh ?? 0, // the firmware's default for a missing speed
+            p.headingDeg != null && (p.speedKmh ?? 0) >= headingMinSpeedMps * 3.6 ? p.headingDeg : null,
+          ),
+      ];
 
-  int _replayIndex = 0;
-
-  /// Replay progress: index of the point being sent, of [replayLength].
-  int get replayIndex => _replayIndex;
+  /// Replay progress: the row sent last (the table loops), of [replayLength].
+  int get replayIndex => (unit.replayIdx - 1) % (replayLength == 0 ? 1 : replayLength);
   int get replayLength => source is ReplayDrive ? (source as ReplayDrive).points.length : 0;
 
   // --- what the screen shows (all from the last ACK, counted down locally) -------------------

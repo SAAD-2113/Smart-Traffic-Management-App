@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -13,7 +15,11 @@ class IntersectionView extends StatelessWidget {
     required this.interval,
     required this.live,
     this.displays,
+    this.dots,
   });
+
+  /// Optional vehicles to draw (firmware v3 / Digital V2I): metres east / north of the centre.
+  final List<JunctionDot>? dots;
 
   /// Optional MM:SS display beside each head (firmware v3 lanes: the TM1637 modules).
   final Map<String, String?>? displays;
@@ -79,6 +85,10 @@ class IntersectionView extends StatelessWidget {
               Positioned(left: wLeft + long / 2 - dispW / 2, top: center + thick / 2 + 6, child: display('W')),
               Positioned(left: eLeft + long / 2 - dispW / 2, top: center + thick / 2 + 6, child: display('E')),
             ],
+            if (dots != null && dots!.isNotEmpty)
+              Positioned.fill(
+                child: IgnorePointer(child: CustomPaint(painter: _DotPainter(dots: dots!, road: road, live: live))),
+              ),
             Center(child: _Countdown(seconds: countdown, interval: interval, live: live, size: road * 0.92)),
           ]),
         ),
@@ -190,6 +200,73 @@ class _SignalHead extends StatelessWidget {
       ]),
     );
   }
+}
+
+/// A vehicle on the junction drawing.
+class JunctionDot {
+  const JunctionDot({required this.x, required this.y, required this.state, this.emergency = false, this.lane});
+
+  /// Metres east (x) and north (y) of the junction centre.
+  final double x, y;
+
+  /// "APPROACHING" | "QUEUED" | "CROSSING" | "IGNORED".
+  final String? state;
+  final bool emergency;
+
+  /// Lane the intersection decided ("N".."W"), null when none.
+  final String? lane;
+
+  static Color colorOf(String? state) => switch (state) {
+        'QUEUED' => const Color(0xFFF59E0B),
+        'APPROACHING' => const Color(0xFF2563EB),
+        'CROSSING' => const Color(0xFF16A34A),
+        _ => const Color(0xFF94A3B8),
+      };
+}
+
+/// Schematic positions: the 10 m junction box maps to the drawn box and 150 m (the detection
+/// radius) to the edge, at the vehicle's real bearing; dots sit in the left-hand inbound lane of
+/// their arm so they do not hide the signal heads.
+class _DotPainter extends CustomPainter {
+  _DotPainter({required this.dots, required this.road, required this.live});
+  final List<JunctionDot> dots;
+  final double road;
+  final bool live;
+
+  static const boxM = 10.0, edgeM = 150.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final half = size.shortestSide / 2;
+    for (final d in dots) {
+      final r = math.sqrt(d.x * d.x + d.y * d.y);
+      final b = math.atan2(d.x, d.y); // bearing from north, radians
+      final px = r <= boxM ? r / boxM * road / 2 : road / 2 + (math.min(r, edgeM) - boxM) / (edgeM - boxM) * (half - road / 2 - 6);
+      var p = c + Offset(math.sin(b) * px, -math.cos(b) * px);
+      if (r > boxM) {
+        // left-hand traffic: the inbound lane is to the right of the arm, seen from the centre
+        final arm = d.lane == null ? b : const {'N': 0.0, 'E': math.pi / 2, 'S': math.pi, 'W': 3 * math.pi / 2}[d.lane]!;
+        p += Offset(math.sin(arm + math.pi / 2), -math.cos(arm + math.pi / 2)) * (road / 4);
+      }
+      final color = live ? JunctionDot.colorOf(d.state) : const Color(0xFF94A3B8);
+      final radius = d.emergency ? 7.5 : 6.0;
+      canvas.drawCircle(p, radius + 1.5, Paint()..color = Colors.white);
+      canvas.drawCircle(p, radius, Paint()..color = color);
+      if (d.emergency) {
+        canvas.drawCircle(p, radius + 3, Paint()
+          ..color = const Color(0xFFD50000)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.2);
+      }
+      if (r > edgeM) {
+        canvas.drawCircle(p, radius - 2.5, Paint()..color = Colors.white); // beyond 150 m: hollow
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DotPainter old) => true;
 }
 
 /// A lane's 4-digit display, "MM:SS" in the lane's current colour.

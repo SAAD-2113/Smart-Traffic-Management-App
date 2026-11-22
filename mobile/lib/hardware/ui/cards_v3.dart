@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:v2i_core/v2i_core.dart' show Geometry;
 
 import '../../core/theme/app_theme.dart';
 import '../../widgets/common.dart' show Ticker;
@@ -96,6 +97,14 @@ class V3StatusRow extends StatelessWidget {
             icon: Icons.schedule,
             large: true,
           ),
+        if (s?.emergencyLane != null)
+          HwChip(
+            key: const ValueKey('emergency-chip'),
+            label: 'Emergency: lane ${s!.emergencyLane}${s.priorityActive == true ? ' · priority green' : ' · requested'}',
+            color: StatusColors.emergency,
+            icon: Icons.emergency,
+            large: true,
+          ),
         HwChip(
           key: const ValueKey('congestion-chip'),
           label: 'Congestion: ${levelName(s?.congestion == null ? null : _lower(s!.congestion))}',
@@ -120,9 +129,26 @@ class V3StatusRow extends StatelessWidget {
 /// The junction: four heads with their real lamps, each lane's MM:SS display, and the countdown
 /// of the current phase in the middle.
 class V3SignalCard extends StatelessWidget {
-  const V3SignalCard({super.key, required this.view, this.title = 'Live signals'});
+  const V3SignalCard({super.key, required this.view, this.title = 'Live signals', this.center});
   final V3View view;
   final String title;
+
+  /// Junction centre (lat, lon): vehicles are drawn from their lat/lon around it.
+  final (double, double)? center;
+
+  List<JunctionDot>? _dots(V3State s) {
+    final c = center;
+    if (c == null) return null;
+    final g = Geometry(centerLat: c.$1, centerLon: c.$2);
+    return [
+      for (final v in s.vehicles)
+        if (v.lat != null && v.lon != null)
+          () {
+            final (x, y) = g.latlonToXY(v.lat!, v.lon!);
+            return JunctionDot(x: x, y: y, state: v.st, emergency: v.isEmergency, lane: v.lane);
+          }(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +185,23 @@ class V3SignalCard extends StatelessWidget {
                       interval: _interval(s.phase),
                       live: live,
                       displays: {for (final l in v3Lanes) l: view.laneDisplay(l)},
+                      dots: _dots(s),
                     ),
+                    if (center != null && s.vehicles.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(spacing: 10, runSpacing: 4, alignment: WrapAlignment.center, children: [
+                        for (final st in const ['APPROACHING', 'QUEUED', 'CROSSING', 'IGNORED'])
+                          Row(mainAxisSize: MainAxisSize.min, children: [
+                            Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(color: JunctionDot.colorOf(st), shape: BoxShape.circle)),
+                            const SizedBox(width: 4),
+                            Text(stateLabel(st), style: theme.textTheme.labelSmall),
+                          ]),
+                        Text('red ring = emergency · scale: box 10 m, edge 150 m', style: theme.textTheme.labelSmall),
+                      ]),
+                    ],
                     const SizedBox(height: 12),
                     Text(
                       v3PhaseLine(s),
@@ -307,6 +349,7 @@ class V3LanesCard extends StatelessWidget {
               DataColumn(label: Text('Appr.'), numeric: true),
               DataColumn(label: Text('Cross.'), numeric: true),
               DataColumn(label: Text('Qw'), numeric: true),
+              DataColumn(label: Text('q veh/h'), numeric: true),
               DataColumn(label: Text('Density')),
               DataColumn(label: Text('y'), numeric: true),
               DataColumn(label: Text('Green s'), numeric: true),
@@ -344,6 +387,10 @@ class V3LanesCard extends StatelessWidget {
                       DataCell(Text(n(l?.approaching))),
                       DataCell(Text(n(l?.crossing))),
                       DataCell(Text(n(l?.qw, 1))),
+                      // q = Qw x 3600 / window, as in the [PLAN] line
+                      DataCell(Text(l?.qw == null || s?.plan.windowS == null || s!.plan.windowS == 0
+                          ? dash
+                          : (l!.qw! * 3600 / s.plan.windowS!).toStringAsFixed(0))),
                       DataCell(
                         HwChip(
                           label: levelName(l?.density == null ? null : _lower(l!.density)),

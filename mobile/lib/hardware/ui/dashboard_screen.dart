@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:v2i_core/v2i_core.dart' show CENTER_LAT, CENTER_LON;
 
 import '../../core/theme/app_theme.dart';
 import '../../mode/switch_mode.dart';
@@ -29,7 +30,8 @@ class HardwareDashboardScreen extends StatelessWidget {
           // Firmware v3 (four lanes) or the Part-3 layout (NS/EW phases), by the latest frame.
           final v3 = m.isV3;
           final left = v3
-              ? <Widget>[V3SignalCard(view: m), gap, V3TimingCard(view: m), gap, V3PlanCard(view: m)]
+              // firmware v3 has a fixed junction centre (v2i_common.h)
+              ? <Widget>[V3SignalCard(view: m, center: (CENTER_LAT, CENTER_LON)), gap, V3TimingCard(view: m), gap, V3PlanCard(view: m)]
               : <Widget>[const LiveSignalCard(), gap, const TimingCard(), gap, const PlanCard()];
           final right = v3
               ? <Widget>[V3LanesCard(view: m), gap, V3SystemCard(view: m), gap, V3VehiclesCard(view: m), gap, const EventLogCard()]

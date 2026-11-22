@@ -48,4 +48,23 @@ class HardwarePlatform {
   }
 
   bool get supportsWifiBinding => _android;
+
+  /// "Samsung SM-A515F (Android 13)", for the "measured on" labels of exports; null when unknown.
+  Future<String?> deviceName() async {
+    if (!_android) return null;
+    try {
+      return await _channel.invokeMethod<String>('deviceName');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Android: saves a file to Downloads/DigitalV2I and returns where. Null where saving files is
+  /// not supported (other platforms). Throws a PlatformException when saving fails.
+  Future<String?> saveToDownloads(String name, String mime, Uint8List bytes) async {
+    if (!_android) return null;
+    return _channel.invokeMethod<String>('saveToDownloads', {'name': name, 'mime': mime, 'bytes': bytes});
+  }
+
+  bool get supportsSavingFiles => _android;
 }

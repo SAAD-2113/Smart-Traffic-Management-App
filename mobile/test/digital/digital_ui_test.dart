@@ -193,6 +193,8 @@ void main() {
     expect(find.textContaining('Basis (display only)'), findsOneWidget);
     expect(junction.controller.findVeh(1001), isNotNull);
     expect(junction.rttMs[1001], isNotNull, reason: 'the vehicle reports its RTT');
+    expect(find.textContaining(RegExp(r'\[ACK \] seq=\d+ lane=N .* <- RTT \d+ ms')), findsWidgets,
+        reason: 'the packet log shows each ACK\'s round trip');
 
     junction.stop(); // the intersection goes away: RED after 3 s without an ACK
     await tester.pump(const Duration(seconds: 4));

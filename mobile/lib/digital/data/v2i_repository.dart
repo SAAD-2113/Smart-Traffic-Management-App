@@ -27,6 +27,10 @@ class V2IRepository {
   Future<HostedSession> closeSession(String id) async =>
       HostedSession.fromJson(await _api.post('/v2i/sessions/$id/close') as Json);
 
+  /// Server copy of an export file (host / admin).
+  Future<void> uploadExport(String sessionId, {required String filename, required String contentType, required String content}) =>
+      _api.post('/v2i/sessions/$sessionId/exports', body: {'filename': filename, 'contentType': contentType, 'content': content});
+
   // admin: emergency authorisation
   Future<List<V2IProfileRow>> profiles({String? emergencyStatus}) async => jsonList(
           await _api.get('/v2i/profiles', query: emergencyStatus == null ? null : {'emergencyStatus': emergencyStatus}))

@@ -179,6 +179,9 @@ class V2IVehicle {
   final _sentAt = <int, int>{};
   int? lastRttMs;
   final rttSamples = <int>[];
+
+  /// RTT of the most recent ACKs by seq (digital twin: shown next to the [ACK ] lines).
+  final rttBySeq = <int, int>{};
   int bytesSent = 0, packetsSent = 0;
 
   int _tSim = -1, _tBeacon = 0, _tReplay = 0;
@@ -416,6 +419,8 @@ class V2IVehicle {
     if (sentAt != null) {
       lastRttMs = millis() - sentAt;
       rttSamples.add(lastRttMs!);
+      rttBySeq[seq] = lastRttMs!;
+      if (rttBySeq.length > 400) rttBySeq.remove(rttBySeq.keys.first);
     }
     _print(
       '[ACK ] seq=$seq lane=$ackLane st=$ackSt sig=$sg rem=${cfix(ackRem, 1)}s mode=$ackMode${ackPri != 0 ? ' PRIORITY' : ''}',

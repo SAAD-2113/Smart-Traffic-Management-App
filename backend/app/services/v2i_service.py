@@ -11,11 +11,13 @@ from app.core.errors import AppError, not_found
 from app.core.time import utcnow
 from app.models.enums import UserRole, V2IEmergencyStatus, V2ISessionStatus
 from app.models.user import User
-from app.models.v2i import V2IMember, V2IProfile, V2ISession
+from app.models.v2i import V2IExport, V2IMember, V2IProfile, V2ISession
 from app.realtime.v2i_relay import relay
 from app.repositories import audit_repo, user_repo
 from app.schemas.v2i import (
     EmergencyDecisionIn,
+    ExportIn,
+    ExportOut,
     JoinedOut,
     ProfileOut,
     SessionCreateIn,
@@ -216,6 +218,33 @@ async def session_state(db: AsyncSession, user: User, session_id: uuid.UUID) -> 
     room = relay.rooms.get(s.id)
     return SessionStateOut(session_id=s.id, intersection_online=relay.intersection_online(s.id),
                            received_at=room.state_at if room else None, state=room.state if room else None)
+
+
+async def upload_export(db: AsyncSession, user: User, session_id: uuid.UUID, body: ExportIn) -> ExportOut:
+    """Server copy of an export, by the session's host (or an admin)."""
+    s = await host_session(db, user, session_id)
+    e = V2IExport(session_id=s.id, uploaded_by=user.id, filename=body.filename, content_type=body.content_type,
+                  size=len(body.content.encode("utf-8")), content=body.content, created_at=utcnow())
+    db.add(e)
+    await audit_repo.record(db, "v2i.export.uploaded", actor_user_id=user.id, target_type="v2i_session", target_id=s.id,
+                            details={"filename": body.filename, "size": e.size})
+    await db.commit()
+    return ExportOut.model_validate(e)
+
+
+async def list_exports(db: AsyncSession, user: User, session_id: uuid.UUID) -> list[ExportOut]:
+    s = await host_session(db, user, session_id)
+    rows = (await db.scalars(select(V2IExport).where(V2IExport.session_id == s.id)
+                             .order_by(V2IExport.created_at.desc()).limit(200))).all()
+    return [ExportOut.model_validate(e) for e in rows]
+
+
+async def get_export(db: AsyncSession, user: User, export_id: uuid.UUID) -> V2IExport:
+    e = await db.get(V2IExport, export_id)
+    if e is None:
+        raise not_found("Export")
+    await host_session(db, user, e.session_id)  # 404 unless host or admin
+    return e
 
 
 async def relay_role(db: AsyncSession, user: User, session_id: uuid.UUID) -> tuple[V2ISession, str, V2IProfile | None]:

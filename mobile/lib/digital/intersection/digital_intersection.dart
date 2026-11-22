@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:v2i_core/v2i_core.dart' as v2i;
@@ -38,7 +39,11 @@ class DigitalIntersection extends ChangeNotifier implements V3View {
       intersectionName: name,
       wallClock: wallClock ?? DateTime.now,
     );
+    // the whole session: every log line, a snapshot per second, every vehicle decision
+    recorder = v2i.SessionRecorder(controller, name: name);
   }
+
+  late final v2i.SessionRecorder recorder;
 
   final String name;
   final IntersectionLink link;
@@ -77,6 +82,7 @@ class DigitalIntersection extends ChangeNotifier implements V3View {
       ..onRtt = (vid, ms) {
         rttMs[vid] = ms;
         controller.reportRtt(vid, ms);
+        recorder.rtt(vid, ms);
       }
       ..onMember = (vid, online, emergency) {
         members[vid] = MemberInfo(online: online, emergency: emergency);
@@ -108,9 +114,18 @@ class DigitalIntersection extends ChangeNotifier implements V3View {
     super.dispose();
   }
 
-  /// One pass of loop().
+  /// One pass of loop(): injected vehicles read their ACKs and move, then the controller.
   void step() {
+    final acks = List.of(_injectedAcks);
+    _injectedAcks.clear();
+    for (final (v, a) in acks) {
+      v.onAck(a);
+    }
+    for (final v in injected) {
+      v.tick();
+    }
     controller.tick();
+    recorder.tick();
     final now = clock.nowMs();
     if (now - _lastUi >= uiEvery.inMilliseconds) {
       _lastUi = now;
@@ -125,11 +140,67 @@ class DigitalIntersection extends ChangeNotifier implements V3View {
     if (!running) return;
     packetsIn++;
     final ack = controller.processPacket(raw);
+    recorder.vehicleSample(vid);
     if (ack != null) {
       link.sendAck(vid, ack);
       acksOut++;
     }
   }
+
+  // --- test injector: virtual vehicles that run the firmware's vehicle unit in this phone ----
+
+  /// Injected vehicles (marked "inject" in the vehicle table). They talk to the controller
+  /// directly; their ACK is read on their next pass, like over the air.
+  final injected = <v2i.V2IVehicle>[];
+  final _injectedAcks = <(v2i.V2IVehicle, String)>[];
+  final _rnd = math.Random();
+
+  Iterable<int> get injectedIds => injected.map((v) => v.vId);
+
+  /// Adds a virtual vehicle. Presets keep their firmware ids (101..202); custom ones get 501..999.
+  v2i.V2IVehicle inject(v2i.VehicleSpec spec) {
+    if (injectedIds.contains(spec.id)) throw StateError('vehicle ${spec.id} is already injected');
+    late final v2i.V2IVehicle v;
+    v = v2i.V2IVehicle(
+      spec: spec,
+      clock: clock,
+      hw: 'inject',
+      geometry: controller.geometry,
+      random: math.Random(_rnd.nextInt(1 << 31)),
+      wallClock: DateTime.now,
+      send: (packet) {
+        if (!running) return;
+        packetsIn++;
+        final ack = controller.processPacket(packet);
+        recorder.vehicleSample(spec.id);
+        if (ack != null) _injectedAcks.add((v, ack));
+      },
+    );
+    injected.add(v);
+    note('test injector: vehicle ${spec.id} (${spec.type == v2i.VT_EMERGENCY ? 'emergency' : 'normal'}, arm '
+        '${v2i.LANE_NAME[spec.arm]}, slot ${spec.slot}, ${spec.startDist.toStringAsFixed(0)} m, '
+        '${spec.kmh.toStringAsFixed(0)} km/h, delay ${spec.delayS} s) added');
+    notifyListeners();
+    return v;
+  }
+
+  /// Switches an injected vehicle off: it stops sending and the controller drops it after 3 s.
+  void removeInjected(int id) {
+    final before = injected.length;
+    injected.removeWhere((v) => v.vId == id);
+    _injectedAcks.removeWhere((a) => a.$1.vId == id);
+    if (injected.length != before) note('test injector: vehicle $id switched off');
+    notifyListeners();
+  }
+
+  void removeAllInjected() {
+    for (final id in injectedIds.toList()) {
+      removeInjected(id);
+    }
+  }
+
+  /// The injected vehicles as a scenario, for the Fixed vs Adaptive comparison.
+  List<v2i.VehicleSpec> get injectedSpecs => [for (final v in injected) v.spec];
 
   // --- commands (the firmware's Serial commands) -------------------------------------------
 
