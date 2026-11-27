@@ -1,5 +1,7 @@
 # Smart Traffic Management System
 
+<p align="center"><img src="docs/screenshots/app-icon.png" alt="Smart Traffic app icon: a traffic light" width="96"></p>
+
 Final-year project: smartphone vehicle telemetry feeding a multi-intersection adaptive traffic
 management engine, with a driver app, a traffic-manager dashboard, SUMO simulation and a demo mode.
 
@@ -23,6 +25,29 @@ management engine, with a driver app, a traffic-manager dashboard, SUMO simulati
 
 Signal timings produced by the engine are **advisory and for simulation/prototype use**. Simulated
 data (demo fleet, SUMO) is always labelled as such and kept separate from real vehicles.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/mode-selection-light.jpg" alt="Mode selection, light theme" width="240"><br><sub>Mode selection (light)</sub></td>
+    <td align="center"><img src="docs/screenshots/mode-selection-dark.jpg" alt="Mode selection, dark theme" width="240"><br><sub>Mode selection (dark)</sub></td>
+    <td align="center"><img src="docs/screenshots/sign-in.jpg" alt="Sign-in screen with the hosted server preset" width="240"><br><sub>Sign in, hosted server preset</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/dashboard-light.jpg" alt="Traffic control center dashboard, light theme" width="240"><br><sub>Manager dashboard (light)</sub></td>
+    <td align="center"><img src="docs/screenshots/dashboard-dark.jpg" alt="Traffic control center dashboard, dark theme" width="240"><br><sub>Manager dashboard (dark)</sub></td>
+    <td align="center"><img src="docs/screenshots/intersections.jpg" alt="Intersections list: I2 adaptive during a rush hour" width="240"><br><sub>Intersections: I2 adaptive in a rush hour</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/hardware-mode.jpg" alt="Hardware mode with the firmware v3 simulator" width="240"><br><sub>Hardware mode (simulator)</sub></td>
+    <td align="center"><img src="docs/screenshots/digital-v2i-host.jpg" alt="Digital V2I intersection phone with the test injector" width="240"><br><sub>Digital V2I: intersection phone</sub></td>
+    <td align="center"><img src="docs/screenshots/digital-v2i-junction.jpg" alt="Digital V2I junction with vehicles and an emergency vehicle" width="240"><br><sub>Digital V2I: live junction</sub></td>
+  </tr>
+</table>
+
+Taken from the app's web build at phone size, with the demo fleet (the manager screens show
+simulated vehicles, labelled as such in the app) and the Digital V2I test injector.
 
 | Folder | Contents | Status |
 |---|---|---|
@@ -61,4 +86,4 @@ login screen and enter `http://<PC IP>:8000`. The app is preset to the hosted se
 
 ## Tests
 
-`traffic_engine`: 56 · `backend`: 134 · `mobile`: 98 · `mobile/packages/v2i_core`: 84 (see `docs/TESTING.md`).
+`traffic_engine`: 56 · `backend`: 134 · `mobile`: 99 · `mobile/packages/v2i_core`: 85 (see `docs/TESTING.md`).
