@@ -36,8 +36,7 @@ Go to https://render.com, choose **Get Started**, and sign up **with GitHub** (t
 
 1. In the Render dashboard: **New** → **Blueprint**.
 2. Select the repository **Smart-Traffic-Management-App**.
-3. **Branch:** choose `claude/busy-ritchie-x9ac7i` (the branch with the code). If Render does not let
-   you pick a branch, merge that branch into `main` on GitHub first, then use `main`.
+3. **Branch:** choose `main`.
 4. Render reads `render.yaml` and shows the two resources. It asks for two values:
    - `BOOTSTRAP_ADMIN_EMAIL`: the email you want to log in with, e.g. `manager@example.com`
    - `BOOTSTRAP_ADMIN_PASSWORD`: at least 10 characters, with at least one letter and one digit
@@ -65,7 +64,7 @@ Everyone else (drivers) enters the same address and taps **Create account**.
 ## Everyday use
 
 - Nothing to start or stop. If the server was asleep, the first screen takes up to a minute.
-- New code pushed to the branch is deployed automatically. Database changes are applied on start-up.
+- New code pushed to `main` is deployed automatically. Database changes are applied on start-up.
   The 1.1 update moves intersections that were `ADAPTIVE` to the new `AUTO` policy (fixed-time
   until congestion is significant, then adaptive). Install the matching APK on the phones.
 - Demo traffic: **More → Settings → Demo simulation → Start simulation** in the manager app. To see
@@ -79,6 +78,27 @@ Everyone else (drivers) enters the same address and taps **Create account**.
 - Password-reset emails are not configured on this prototype server; reset links appear in the
   service **Logs**. To send real emails, add `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`,
   `SMTP_PASSWORD`, `SMTP_FROM` and `PASSWORD_RESET_URL` under **Environment**.
+
+## Deploys fail: "Name or service not known" (the free database expired)
+
+When Render's free database expires, Render deletes it. Every deploy then fails at start-up: the logs
+show `alembic/env.py` ... `socket.gaierror: [Errno -2] Name or service not known` and
+`Exited with status 1`, because `DATABASE_URL` still names the deleted database. The data in it is
+gone; a new database starts empty (the server recreates your admin account and the corridor; other
+users register again).
+
+Fix it with a new database, then point the service at it:
+
+1. Create the database, **either**
+   - on Render: **New** → **Postgres**, name `smart-traffic-db`, region **Singapore**, plan Free
+     (expires again after the free period) or a paid plan (does not expire). Render asks for a
+     payment card on file first. When it is ready, copy its **Internal Database URL**; **or**
+   - on another provider with a free plan that does not expire, for example Neon (neon.tech):
+     create a project in an Asia-Pacific region (Singapore if offered) and copy its connection
+     string (`postgresql://...?sslmode=require`).
+2. Open **smart-traffic-api** → **Environment** → `DATABASE_URL` → paste the URL → **Save, rebuild,
+   and deploy**.
+3. When the deploy is **Live**, `https://<your address>/api/v1/health` shows `"database":"ok"`.
 
 ## Using another database
 
