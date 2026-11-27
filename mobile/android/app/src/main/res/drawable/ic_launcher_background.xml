@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asphalt with a red glow (top left) and a green glow (bottom right). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:angle="315"
+                android:startColor="#FF080808"
+                android:centerColor="#FF1C1917"
+                android:endColor="#FF2C221C" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:centerX="0.12"
+                android:centerY="0.1"
+                android:gradientRadius="64dp"
+                android:startColor="#80E11D2E"
+                android:endColor="#00E11D2E" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:centerX="0.92"
+                android:centerY="0.95"
+                android:gradientRadius="68dp"
+                android:startColor="#7016A34A"
+                android:endColor="#0016A34A" />
+        </shape>
+    </item>
+</layer-list>
