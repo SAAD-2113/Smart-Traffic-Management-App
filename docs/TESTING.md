@@ -12,7 +12,8 @@ cd mobile;          flutter analyze; flutter test    # 98 tests
 `flutter analyze` in `mobile/` also analyzes `packages/v2i_core`, so run `dart pub get` there first.
 
 CI (`.github/workflows/ci.yml`) runs all four suites, then builds the Android APK and the web
-dashboard on every push.
+dashboard on every push. On `main`, a new version number in `mobile/pubspec.yaml` also publishes the APK as a
+GitHub release (`v<version>`).
 
 ## What is covered
 
@@ -79,7 +80,7 @@ dashboard on every push.
   bootstrap (admin + corridor), login, demo, live WebSocket, per-client rate limits behind a proxy
   (`X-Forwarded-For`), and an idempotent restart.
 - **APK:** 1.2.0 was checked statically (manifest, permissions, components, dex references, signature).
-  1.3.0 is built by CI with `flutter build apk --release`. Neither has been installed on a physical
+  1.3.0 and later are built by CI with `flutter build apk --release`. Neither has been installed on a physical
   phone in the build environment; do that first (below).
 
 ## Manual test plan on a phone

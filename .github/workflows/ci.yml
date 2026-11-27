@@ -93,17 +93,55 @@ jobs:
           retention-days: 14
 
   release:
-    name: Attach APK to GitHub release
-    if: startsWith(github.ref, 'refs/tags/v')
+    # A push to main publishes the APK as release v<pubspec version> once per version (a new
+    # version number on main = a new release); a pushed v* tag publishes that tag.
+    name: Publish the APK as a GitHub release
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main'
     needs: [backend, mobile]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+      - name: Release tag
+        id: tag
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "name=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          else
+            version=$(grep -m1 '^version:' mobile/pubspec.yaml | sed -E 's/^version: *//; s/\+.*//')
+            echo "name=v$version" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Skip a version that is already released
+        id: released
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${{ steps.tag.outputs.name }}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release ${{ steps.tag.outputs.name }} exists; nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/download-artifact@v4
+        if: steps.released.outputs.skip != 'true'
         with:
           name: smart-traffic-apk
+      - name: Name the APK after the release
+        if: steps.released.outputs.skip != 'true'
+        run: mv smart-traffic-*.apk "smart-traffic-${{ steps.tag.outputs.name }}.apk"
       - uses: softprops/action-gh-release@v2
+        if: steps.released.outputs.skip != 'true'
         with:
-          files: smart-traffic-*.apk
+          tag_name: ${{ steps.tag.outputs.name }}
+          target_commitish: ${{ github.sha }}
+          name: Smart Traffic ${{ steps.tag.outputs.name }}
+          files: smart-traffic-${{ steps.tag.outputs.name }}.apk
+          body: |
+            Android APK (one file for 64-bit and 32-bit ARM phones and x86_64 emulators), built by CI
+            with `flutter build apk --release`. Android 7.0 or newer.
+
+            Install: download the APK on the phone and open it (allow installing unknown apps).
+            Unless the repository has release-key secrets, the APK is signed with a debug key:
+            uninstall an older version first. See dist/README.md.
           generate_release_notes: true

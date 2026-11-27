@@ -34,7 +34,7 @@ data (demo fleet, SUMO) is always labelled as such and kept separate from real v
 | `infra/` | Docker Compose for PostgreSQL (+PostGIS) | Done |
 | `Dockerfile`, `render.yaml` | Server image and one-click Render deployment | Done |
 | `docs/` | Architecture, API, security and privacy, testing, Windows setup, ADRs | |
-| `dist/` | Android APK 1.2.0, and where to download 1.3.0 (built by CI) | |
+| `dist/` | Android APK 1.2.0, and where to download the current APK (GitHub Releases) | |
 
 ## Start here
 
@@ -55,7 +55,7 @@ uv run python -m scripts.seed_intersections          # policy AUTO: fixed-time, 
 uv run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Install the APK (1.3.0 from the CI build, see `dist/README.md`; the older 1.2.0 files are in `dist/`) on an Android phone on the same Wi-Fi, tap **Server** on the
+Install the APK (1.4.0 from the repository's GitHub Releases, see `dist/README.md`; the older 1.2.0 files are in `dist/`) on an Android phone on the same Wi-Fi, tap **Server** on the
 login screen and enter `http://<PC IP>:8000`. For a cloud server, enter its `https://` address instead.
 
 ## Tests

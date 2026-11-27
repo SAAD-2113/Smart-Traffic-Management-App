@@ -115,8 +115,8 @@ backend over HTTPS with a tunnel (e.g. Cloudflare Tunnel) and start uvicorn with
 
 ## 5. Install the Android app
 
-**Provided APK:** 1.3.0 is built by CI: download it as described in `dist/README.md` (uninstall 1.2.0 first;
-the signing key changed). The older 1.2.0 is in `dist/`: `smart-traffic-v1.2.0-arm64-v8a.apk` (most phones) or the universal
+**Provided APK:** download the current one (1.4.0) from the repository's GitHub Releases page, as described in
+`dist/README.md` (uninstall an older version first; the signing key changed). The older 1.2.0 is in `dist/`: `smart-traffic-v1.2.0-arm64-v8a.apk` (most phones) or the universal
 `smart-traffic-v1.2.0.apk`. Copy the APK to the phone and open it (allow "Install unknown apps"
 for your file manager when asked). Android 7.0 or newer.
 

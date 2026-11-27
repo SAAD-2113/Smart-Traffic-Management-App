@@ -1,19 +1,26 @@
 # Android APK
 
-## 1.3.0 (current): built by CI
+## 1.4.0 (current): GitHub Releases
 
-Smart Traffic app 1.3.0, package `com.fyp.smart_traffic`, built by GitHub Actions with the
-standard `flutter build apk --release` from commit `a2d1ffb` (CI run 18, versionCode 18).
+Smart Traffic app 1.4.0, package `com.fyp.smart_traffic`, built by GitHub Actions with the
+standard `flutter build apk --release`.
 
-**Download:** [CI run 18](https://github.com/SAAD-2113/Smart-Traffic-Management-App/actions/runs/45024723871)
-→ **Artifacts** → `smart-traffic-apk` (sign in to GitHub). It is a zip holding
-`smart-traffic-18.apk` (62.9 MB, universal: 64-bit and 32-bit ARM plus x86_64). GitHub keeps it until
-2026-12-22. Every push to the branch builds a new one (Actions → CI → the latest green run).
+**Download:** the repository's [Releases page](https://github.com/SAAD-2113/Smart-Traffic-Management-App/releases)
+→ **Smart Traffic v1.4.0** → `smart-traffic-v1.4.0.apk` (one file for 64-bit and 32-bit ARM phones and
+x86_64 emulators). No GitHub sign-in is needed. CI publishes a release by itself whenever `main`
+gets a new version number in `mobile/pubspec.yaml`.
 
-The APK is not in this folder. The build environment used for 1.3.0 could not reach Google's Maven
-repository (needed to build an APK) or GitHub's artifact storage (needed to download the CI build).
+What's new in 1.4.0:
+- **New look:** frosted-glass surfaces (background blur, translucent cards, hairline borders)
+  over a white (light theme) or black (dark theme) background with soft red, amber and green
+  signal glows. The colours are the three signal colours plus a warm orange, with graphite
+  neutrals. There is no blue anywhere, including the chart colours, which were re-checked for
+  colour-blind readers.
+- **Traffic-light app icon:** an adaptive icon (with a themed monochrome version on Android
+  13+), a matching splash screen and web icons.
+- Same features as 1.3.0.
 
-What's new in 1.3.0:
+What 1.3.0 added:
 - **Digital V2I mode**, a third card on the mode selection: a digital twin of the V2I firmware v3.
   An ADMIN / MANAGER phone runs the intersection controller. Driver phones join with a code and
   run as vehicles: simulated, live GPS or a replay of their own recorded trip. The server decides
@@ -24,7 +31,6 @@ What's new in 1.3.0:
   log export to `Downloads/DigitalV2I`. See `docs/DIGITAL_V2I.md`.
 - **Hardware mode reads firmware v3 frames**: a four-lane dashboard with the per-lane MM:SS
   displays. Its simulator is now the firmware v3 twin. See `docs/HARDWARE_MODE.md`.
-- Software System: unchanged.
 
 | | |
 |---|---|
@@ -32,8 +38,8 @@ What's new in 1.3.0:
 | Permissions | the same as 1.2.0: Internet, network state, precise/approximate location (while in use), foreground location service, wake lock, notifications |
 | Signed with | the Android **debug** key of the CI runner (the repository has no release-key secrets) |
 
-**Uninstall 1.2.0 first.** 1.2.0 was signed with a different certificate, so Android refuses to
-install 1.3.0 over it. Uninstalling removes what is stored on the phone: the server address, the
+**Uninstall the old app first** (1.2.0, or a 1.3.0 CI build). They were signed with different
+keys, so Android refuses to install 1.4.0 over them. Uninstalling removes what is stored on the phone: the server address, the
 remembered mode, the sign-in and any GPS points still waiting in the offline queue (finish uploading
 first). Accounts, vehicles and trips already sent stay on the server.
 
@@ -42,7 +48,7 @@ every CI build install over the previous one, add four repository secrets
 (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `ANDROID_STORE_PASSWORD`).
 `.github/workflows/ci.yml` then signs with your key (see `mobile/android/app/build.gradle.kts`).
 
-Not yet done with 1.3.0: installing it on a physical phone. Do that first (`docs/DIGITAL_V2I.md`,
+Not yet done with 1.4.0: installing it on a physical phone. Do that first (`docs/DIGITAL_V2I.md`,
 "What has not been verified").
 
 ## 1.2.0 (the files in this folder; no Digital V2I)
