@@ -26,6 +26,21 @@ management engine, with a driver app, a traffic-manager dashboard, SUMO simulati
 Signal timings produced by the engine are **advisory and for simulation/prototype use**. Simulated
 data (demo fleet, SUMO) is always labelled as such and kept separate from real vehicles.
 
+## Live server
+
+The backend runs on Render: **<https://smart-traffic-management-app.onrender.com>**
+
+| | |
+|---|---|
+| Health check | <https://smart-traffic-management-app.onrender.com/api/v1/health> (`"status":"ok"`, `"database":"ok"`) |
+| API docs | <https://smart-traffic-management-app.onrender.com/docs> |
+| Android app | [latest release](https://github.com/SAAD-2113/Smart-Traffic-Management-App/releases/latest) (APK) |
+
+The app is preset to this server: install the APK, then sign in or tap **Create account**. It runs on
+Render's free plan: the **Keep Render awake** workflow pings it every 10 minutes, but after a pause
+the first request can still take up to a minute. The free database expires after about 30 days
+(see `docs/DEPLOY_CLOUD.md`).
+
 ## Screenshots
 
 <table>
@@ -63,8 +78,9 @@ simulated vehicles, labelled as such in the app) and the Digital V2I test inject
 
 ## Start here
 
-1. Run the server: **in the cloud** with `docs/DEPLOY_CLOUD.md` (no PC needed, phones connect from
-   anywhere), or **on your PC** with `docs/SETUP_WINDOWS.md` (phones on the same Wi-Fi).
+1. Use the [live server](#live-server), or run your own: **in the cloud** with `docs/DEPLOY_CLOUD.md`
+   (no PC needed, phones connect from anywhere), or **on your PC** with `docs/SETUP_WINDOWS.md`
+   (phones on the same Wi-Fi).
 2. `docs/ARCHITECTURE.md`: system design, telemetry packet spec, traffic processing, emergency flow.
 3. `docs/HARDWARE_MODE.md`: the ESP32 intersection monitor (Hardware mode), its simulator and test server.
    `docs/DIGITAL_V2I.md`: Digital V2I mode (phones as intersection and vehicles), metrics and exports.
