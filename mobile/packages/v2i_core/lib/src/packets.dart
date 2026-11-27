@@ -7,19 +7,47 @@ import 'config.dart';
 /// `d["x"] | default` returns the default when the value is missing or of another type,
 /// `d["x"].isNull()` is true when it is missing or null.
 class ArduinoJsonDoc {
-  ArduinoJsonDoc(this.map);
+  ArduinoJsonDoc(this.map, [this._fractional = const {}]);
   final Map<String, Object?> map;
+
+  /// Keys whose number was written with a fraction or an exponent ("7.0", "7e0"). ArduinoJson
+  /// stores those as float, so integer reads reject them. The Dart VM decodes them as double
+  /// anyway, but compiled to JavaScript (web build) 7.0 and 7 are the same number, so the
+  /// source text is the only way to tell.
+  final Set<String> _fractional;
+
+  static final _numberField = RegExp(r'"((?:[^"\\]|\\.)*)"\s*:\s*-?\d+(\.\d*)?([eE][+-]?\d+)?');
 
   /// Parses [text]; null when it is not a JSON object.
   static ArduinoJsonDoc? parse(String text) {
     try {
       final v = jsonDecode(text);
-      if (v is Map) return ArduinoJsonDoc(v.map((k, val) => MapEntry('$k', val)));
+      if (v is Map) {
+        final fractional = <String>{
+          for (final m in _numberField.allMatches(text))
+            if (m.group(2) != null || m.group(3) != null) ?_key(m.group(1)!),
+        };
+        return ArduinoJsonDoc(v.map((k, val) => MapEntry('$k', val)), fractional);
+      }
     } on FormatException {
       return null;
     }
     return null;
   }
+
+  /// The key text of a match, unescaped; null when it is not a valid JSON string (the match was
+  /// inside a string value), so such text never makes a packet bad.
+  static String? _key(String raw) {
+    try {
+      final k = jsonDecode('"$raw"');
+      return k is String ? k : null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// An integer as ArduinoJson sees it: written without a fraction or exponent.
+  bool _isInt(String key, Object? v) => v is int && !_fractional.contains(key);
 
   bool isNull(String key) => map[key] == null;
 
@@ -32,13 +60,13 @@ class ArduinoJsonDoc {
   /// `d[key] | 0` (int): integer values only.
   int intOr(String key, int def) {
     final v = map[key];
-    return v is int ? v : def;
+    return _isInt(key, v) ? v as int : def;
   }
 
   /// `d[key] | 0UL`: non-negative integers within uint32.
   int uintOr(String key, int def) {
     final v = map[key];
-    return v is int && v >= 0 && v <= 0xFFFFFFFF ? v : def;
+    return _isInt(key, v) && (v as int) >= 0 && v <= 0xFFFFFFFF ? v : def;
   }
 
   /// `d[key] | 0.0f`: any number, as float.
@@ -61,8 +89,11 @@ class ArduinoJsonDoc {
   /// `d[key].as<uint32_t>()`: integers in range, floats truncated, else 0.
   int asUint32(String key) {
     final v = map[key];
-    if (v is int) return v >= 0 && v <= 0xFFFFFFFF ? v : 0;
-    if (v is double && v.isFinite && v >= 0 && v < 4294967296.0) return v.truncate();
+    if (_isInt(key, v)) return (v as int) >= 0 && v <= 0xFFFFFFFF ? v : 0;
+    if (v is num) {
+      final d = v.toDouble();
+      if (d.isFinite && d >= 0 && d < 4294967296.0) return d.truncate();
+    }
     return 0;
   }
 }

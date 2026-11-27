@@ -1,3 +1,7 @@
+// Reads the firmware source from disk (dart:io), so it runs on the VM only.
+@TestOn('vm')
+library;
+
 import 'dart:convert';
 import 'dart:io';
 

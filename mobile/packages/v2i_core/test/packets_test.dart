@@ -163,6 +163,21 @@ void main() {
       expect(bad[7], startsWith('[RX! ] packet without id/lat/lon'), reason: 'id must be an integer');
     });
 
+    test('7.0 / 7e0 are floats for integer fields on every platform (also compiled to JavaScript); '
+        'number-like text inside a string value does not matter', () {
+      final b = Bench();
+      for (final p in ['{"t":"pos","id":7e0,"lat":31.5,"lon":74.3}', '{"t":"pos","id":7,"seq":3.0,"lat":31.5,"lon":74.3}']) {
+        final ack = b.ic.processPacket(p);
+        if (p.contains('7e0')) {
+          expect(ack, isNull, reason: p);
+        } else {
+          expect(ack, contains('"seq":3,'), reason: 'seq is read with as<uint32_t>(): a float is converted');
+        }
+      }
+      final ok = b.ic.processPacket(r'{"t":"pos","id":8,"hw":"x\":1.5","lat":31.5,"lon":74.3,"seq":2}');
+      expect(ok, startsWith('{"t":"ack","id":8,"seq":2,'));
+    });
+
     test('vehicle table full at MAX_VEH = 16 (the packet still counts in rx)', () {
       final b = Bench();
       for (var id = 1; id <= 16; id++) {

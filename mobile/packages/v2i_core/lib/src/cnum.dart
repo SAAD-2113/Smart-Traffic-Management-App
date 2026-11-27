@@ -27,10 +27,13 @@ String cfix(num value, int decimals) {
   if (x.isNaN) return 'nan';
   if (x.isInfinite) return x < 0 ? '-inf' : 'inf';
   final negative = x.isNegative; // includes -0.0, which printf prints as "-0.0"
+  // The IEEE-754 bits, read as two 32-bit halves: 64-bit integer access (getUint64) does not
+  // exist when compiled to JavaScript (web build), and JS numbers cannot hold 64-bit integers.
   final bits = ByteData(8)..setFloat64(0, x.abs());
-  final raw = bits.getUint64(0);
-  final exponentBits = (raw >> 52) & 0x7FF;
-  var mantissa = BigInt.from(raw & 0xFFFFFFFFFFFFF);
+  final hi = bits.getUint32(0); // sign, 11 exponent bits, top 20 mantissa bits
+  final lo = bits.getUint32(4); // low 32 mantissa bits
+  final exponentBits = (hi >> 20) & 0x7FF;
+  var mantissa = (BigInt.from(hi & 0xFFFFF) << 32) | BigInt.from(lo);
   int exponent;
   if (exponentBits == 0) {
     exponent = -1074; // subnormal
