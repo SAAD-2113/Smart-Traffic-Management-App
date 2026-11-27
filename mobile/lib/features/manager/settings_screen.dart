@@ -10,6 +10,7 @@ import '../auth/auth_controller.dart';
 import '../driver/profile_screen.dart' show showChangePassword;
 import 'live_controller.dart';
 import '../../mode/switch_mode.dart';
+import '../../widgets/glass.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -24,7 +25,7 @@ class SettingsScreen extends StatelessWidget {
         const SectionHeader('Demo simulation', subtitle: 'Simulated vehicles for demonstrations, clearly marked SIM'),
         const _DemoCard(),
         const SectionHeader('Display'),
-        Card(
+        GlassCard(
           child: Column(children: [
             ListTile(
               leading: const Icon(Icons.brightness_6_outlined),
@@ -49,7 +50,7 @@ class SettingsScreen extends StatelessWidget {
           ]),
         ),
         const SectionHeader('Connection'),
-        Card(
+        GlassCard(
           child: Column(children: [
             ListTile(leading: const Icon(Icons.dns_outlined), title: const Text('Server'), subtitle: Text(config.serverUrl)),
             const ListTile(
@@ -59,9 +60,9 @@ class SettingsScreen extends StatelessWidget {
           ]),
         ),
         const SectionHeader('App mode'),
-        const Card(child: SwitchModeTile()),
+        const GlassCard(child: SwitchModeTile()),
         const SectionHeader('Account'),
-        Card(
+        GlassCard(
           child: Column(children: [
             ListTile(
               leading: const CircleAvatar(child: Icon(Icons.admin_panel_settings)),
@@ -80,7 +81,7 @@ class SettingsScreen extends StatelessWidget {
           ]),
         ),
         const SectionHeader('About'),
-        const Card(
+        const GlassCard(
           child: Padding(
             padding: EdgeInsets.all(14),
             child: Text(
@@ -230,7 +231,7 @@ class _DemoCardState extends State<_DemoCard> {
   Widget build(BuildContext context) {
     final s = _status;
     final repo = context.read<ManagerRepository>();
-    return Card(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: s == null

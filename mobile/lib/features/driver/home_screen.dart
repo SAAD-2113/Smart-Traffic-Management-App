@@ -8,6 +8,7 @@ import '../../services/tracking_controller.dart';
 import '../../widgets/brand.dart';
 import '../../widgets/common.dart';
 import 'driver_controller.dart';
+import '../../widgets/glass.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -72,7 +73,7 @@ class HomeScreen extends StatelessWidget {
           ),
           if (tracking.lastFix != null) ...[
             const SizedBox(height: 12),
-            Card(
+            GlassCard(
               child: Padding(
                 padding: const EdgeInsets.all(14),
                 child: Column(children: [
@@ -165,7 +166,7 @@ class _LinkPhoneBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Card(
+      child: GlassCard(
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -196,7 +197,7 @@ class _TrackingHero extends StatelessWidget {
   static const _activeGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF065F46), Color(0xFF0F766E), Color(0xFF0E7490)],
+    colors: [Color(0xFF052E16), Color(0xFF14532D), Color(0xFF16A34A)],
   );
 
   @override
@@ -214,7 +215,7 @@ class _TrackingHero extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: active ? _activeGradient : Brand.hero,
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [BoxShadow(color: Brand.navy.withValues(alpha: 0.25), blurRadius: 16, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 20),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -286,7 +287,7 @@ class _StartStopButton extends StatelessWidget {
       icon: Icons.play_circle_outline,
       height: 64,
       busy: tracking.phase == TrackingPhase.starting,
-      gradient: const LinearGradient(colors: [Color(0xFF047857), Color(0xFF10B981)]),
+      gradient: const LinearGradient(colors: [Color(0xFF15803D), Color(0xFF22C55E)]),
       onPressed: !enabled || tracking.isBusy ? null : () => tracking.start(driver.selected!),
     );
   }

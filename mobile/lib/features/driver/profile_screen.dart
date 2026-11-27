@@ -12,6 +12,7 @@ import '../auth/server_settings_sheet.dart';
 import 'driver_controller.dart';
 import 'vehicle_setup_screen.dart';
 import '../../mode/switch_mode.dart';
+import '../../widgets/glass.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -29,7 +30,7 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Profile')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
         const SectionHeader('Account'),
-        Card(
+        GlassCard(
           child: Column(children: [
             ListTile(
               leading: const CircleAvatar(child: Icon(Icons.person)),
@@ -51,7 +52,7 @@ class ProfileScreen extends StatelessWidget {
           ]),
         ),
         const SectionHeader('Vehicle'),
-        Card(
+        GlassCard(
           child: Column(children: [
             InfoTile('Vehicle ID', vehicle.code, icon: Icons.badge),
             InfoTile('Name', vehicle.displayName, icon: Icons.label_outline),
@@ -68,7 +69,7 @@ class ProfileScreen extends StatelessWidget {
         ),
         if (driver.vehicles.length > 1) ...[
           const SectionHeader('Switch vehicle'),
-          Card(
+          GlassCard(
             child: RadioGroup<String>(
               groupValue: vehicle.id,
               onChanged: (id) {
@@ -99,7 +100,7 @@ class ProfileScreen extends StatelessWidget {
           label: const Text('Add another vehicle'),
         ),
         const SectionHeader('App'),
-        Card(
+        GlassCard(
           child: Column(children: [
             ListTile(
               leading: const Icon(Icons.dns_outlined),
@@ -121,7 +122,7 @@ class ProfileScreen extends StatelessWidget {
           ]),
         ),
         const SizedBox(height: 8),
-        const Card(child: SwitchModeTile()),
+        const GlassCard(child: SwitchModeTile()),
         const SizedBox(height: 16),
         FilledButton.tonalIcon(
           style: FilledButton.styleFrom(foregroundColor: StatusColors.danger),

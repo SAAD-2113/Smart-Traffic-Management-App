@@ -250,7 +250,7 @@ class _Head extends StatelessWidget {
       label: 'signal ${switch (signal) { 'G' => 'green', 'Y' => 'yellow', _ => 'red' }}',
       child: Container(
         padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(18)),
+        decoration: BoxDecoration(color: const Color(0xFF141414), borderRadius: BorderRadius.circular(18)),
         child: Column(mainAxisSize: MainAxisSize.min, children: [bulb('R'), bulb('Y'), bulb('G')]),
       ),
     );

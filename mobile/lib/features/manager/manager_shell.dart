@@ -120,7 +120,7 @@ class _ManagerShellState extends State<ManagerShell> {
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 900;
     if (wide) {
-      const railText = Color(0xFFB9C6E4);
+      const railText = Color(0xFFD6D3D1);
       return Scaffold(
         body: Row(children: [
           DecoratedBox(

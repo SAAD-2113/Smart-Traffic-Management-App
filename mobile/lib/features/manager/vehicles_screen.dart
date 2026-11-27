@@ -9,6 +9,7 @@ import '../../widgets/common.dart';
 import 'live_controller.dart';
 import 'manager_shell.dart';
 import 'vehicle_detail_screen.dart';
+import '../../widgets/glass.dart';
 
 enum _Filter { all, transmitting, emergency }
 
@@ -106,7 +107,7 @@ class _VehicleTile extends StatelessWidget {
       'STALE' => ('No recent data', StatusColors.warning),
       _ => ('Not tracking', StatusColors.neutral),
     };
-    return Card(
+    return GlassCard(
       child: ListTile(
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VehicleDetailScreen(vehicleId: v.vehicleId))),
         leading: CircleAvatar(

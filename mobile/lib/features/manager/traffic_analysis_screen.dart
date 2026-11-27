@@ -7,6 +7,7 @@ import '../../widgets/charts.dart';
 import '../../widgets/common.dart';
 import 'live_controller.dart';
 import 'manager_shell.dart';
+import '../../widgets/glass.dart';
 
 /// Compares intersections right now, one measure per chart.
 class TrafficAnalysisScreen extends StatelessWidget {
@@ -22,7 +23,7 @@ class TrafficAnalysisScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SectionHeader(title, subtitle: subtitle),
-            Card(
+            GlassCard(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
                 child: CategoryBarChart(unit: unit, decimals: decimals, items: items),
@@ -53,7 +54,7 @@ class TrafficAnalysisScreen extends StatelessWidget {
                 for (final n in nodes) BarItem(n.code, n.estimated.densityVehPerKmLane),
               ]),
               const SectionHeader('Summary table'),
-              Card(
+              GlassCard(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: DataTable(

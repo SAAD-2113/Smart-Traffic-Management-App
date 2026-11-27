@@ -11,6 +11,7 @@ import '../../widgets/signal_widgets.dart';
 import 'live_controller.dart';
 import 'manager_shell.dart';
 import 'signal_plan_screen.dart';
+import '../../widgets/glass.dart';
 
 /// Signal control overview: plan, latest advisory decision and the state each controller reports.
 class SignalsScreen extends StatefulWidget {
@@ -76,7 +77,7 @@ class _SignalTile extends StatelessWidget {
     final control = current?.control ?? item.control;
     final display = current?.displaySignal ?? item.displaySignal;
     final muted = theme.colorScheme.onSurfaceVariant;
-    return Card(
+    return GlassCard(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () async {

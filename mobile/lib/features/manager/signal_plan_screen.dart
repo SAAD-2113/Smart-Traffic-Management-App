@@ -7,6 +7,7 @@ import '../../data/models/signals.dart';
 import '../../data/models/traffic.dart';
 import '../../data/repositories/manager_repository.dart';
 import '../../widgets/common.dart';
+import '../../widgets/glass.dart';
 
 /// Edits the phases and safety limits of one intersection's signal plan. The server validates
 /// every limit again (minimum green, yellow, all-red, approach coverage, cycle bounds).
@@ -111,7 +112,7 @@ class _SignalPlanScreenState extends State<SignalPlanScreen> {
                 const Text('No adaptive decisions yet (the intersection may be in fixed-time mode).')
               else
                 for (final d in _decisions)
-                  Card(
+                  GlassCard(
                     child: ListTile(
                       dense: true,
                       title: Text('${d.algorithmLabel} · cycle ${d.cycleS.toStringAsFixed(0)} s'
@@ -129,7 +130,7 @@ class _SignalPlanScreenState extends State<SignalPlanScreen> {
     final p = plan.phases[i];
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Card(
+      child: GlassCard(
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

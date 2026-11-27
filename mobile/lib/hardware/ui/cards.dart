@@ -8,6 +8,7 @@ import '../model/labels.dart';
 import '../monitor.dart';
 import 'hw_style.dart';
 import 'intersection_view.dart';
+import '../../widgets/glass.dart';
 
 const _tick = Duration(milliseconds: 100);
 
@@ -394,7 +395,7 @@ class VehiclesCard extends StatelessWidget {
     final theme = Theme.of(context);
     final muted = theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     String kmh(double? spd) => spd == null ? dash : '${(spd * speedUnitToKmh).toStringAsFixed(0)} km/h';
-    return Card(
+    return GlassCard(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: Theme(

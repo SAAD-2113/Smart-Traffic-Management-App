@@ -18,6 +18,7 @@ import 'mode/switch_mode.dart';
 import 'services/location_service.dart';
 import 'services/tracking_controller.dart';
 import 'widgets/common.dart';
+import 'widgets/glass.dart';
 
 class SmartTrafficApp extends StatelessWidget {
   const SmartTrafficApp({super.key, required this.config, required this.api, required this.queue});
@@ -48,7 +49,7 @@ class SmartTrafficApp extends StatelessWidget {
           darkTheme: AppTheme.dark(),
           themeMode: config.themeMode,
           // Role controllers sit above the navigator so every pushed screen can reach them.
-          builder: (context, child) => _SessionScope(child: child!),
+          builder: (context, child) => GlassBackdrop(child: _SessionScope(child: child!)),
           home: const _AuthGate(),
         ),
       ),

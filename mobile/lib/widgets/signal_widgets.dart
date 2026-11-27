@@ -7,6 +7,7 @@ import '../core/utils/units.dart';
 import '../data/models/control.dart';
 import '../data/models/traffic.dart';
 import 'common.dart';
+import 'glass.dart';
 
 /// Mode badge: gradient pill with icon and label. Never colour alone.
 class ModeBadge extends StatelessWidget {
@@ -67,9 +68,9 @@ class TrafficLight extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(lampSize * 0.32),
       decoration: BoxDecoration(
-        color: const Color(0xFF111827),
+        color: const Color(0xFF171717),
         borderRadius: BorderRadius.circular(lampSize * 0.7),
-        border: Border.all(color: const Color(0xFF374151)),
+        border: Border.all(color: const Color(0xFF404040)),
       ),
       child: horizontal
           ? Row(mainAxisSize: MainAxisSize.min, children: [lamps[0], gap, lamps[1], gap, lamps[2]])
@@ -301,7 +302,7 @@ class ControlCard extends StatelessWidget {
     final display = item.displaySignal;
     final muted = theme.colorScheme.onSurfaceVariant;
     final modeColor = c == null ? StatusColors.neutral : ModeColors.of(c.mode);
-    return Card(
+    return GlassCard(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -572,7 +573,7 @@ class IntersectionSignalMarker extends StatelessWidget {
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 7 * scale, vertical: 2 * scale),
             decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withValues(alpha: 0.88),
+              color: const Color(0xFF141414).withValues(alpha: 0.88),
               borderRadius: BorderRadius.circular(8 * scale),
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -620,7 +621,7 @@ class _Head extends StatelessWidget {
       height: size,
       padding: EdgeInsets.all(size * 0.17),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: const Color(0xFF141414),
         borderRadius: BorderRadius.circular(size * 0.3),
         border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 1.2),
       ),

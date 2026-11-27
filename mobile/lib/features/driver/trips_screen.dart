@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/utils/units.dart';
 import '../../widgets/common.dart';
 import 'driver_controller.dart';
+import '../../widgets/glass.dart';
 
 class TripsScreen extends StatefulWidget {
   const TripsScreen({super.key});
@@ -60,7 +61,7 @@ class _TripsScreenState extends State<TripsScreen> {
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final t = trips[i];
-                return Card(
+                return GlassCard(
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

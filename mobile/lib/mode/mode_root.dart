@@ -14,6 +14,7 @@ import '../hardware/hardware_app.dart';
 import '../hardware/monitor.dart';
 import 'app_mode.dart';
 import 'mode_selection_screen.dart';
+import '../widgets/glass.dart';
 
 /// Top of the widget tree: shows the mode selection, the hardware monitor or the software app.
 /// The software app (login, server, tracking) is only built in Software mode, so Hardware mode
@@ -65,6 +66,7 @@ class _ModeRootState extends State<ModeRoot> {
               theme: AppTheme.light(),
               darkTheme: AppTheme.dark(),
               themeMode: config.themeMode,
+              builder: GlassBackdrop.builder,
               home: const ModeSelectionScreen(),
             ),
           AppMode.hardware => HardwareApp(
@@ -80,6 +82,9 @@ class _ModeRootState extends State<ModeRoot> {
                   return MaterialApp(
                     debugShowCheckedModeBanner: false,
                     theme: AppTheme.light(),
+                    darkTheme: AppTheme.dark(),
+                    themeMode: config.themeMode,
+                    builder: GlassBackdrop.builder,
                     home: const Scaffold(body: Center(child: CircularProgressIndicator())),
                   );
                 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../monitor.dart';
+import '../../widgets/glass.dart';
 
 /// Colours for hardware values. Colours always come with a label or icon, never alone.
 class HwColors {
@@ -14,7 +15,7 @@ class HwColors {
 
   /// The lamp as shown when the data is not current: greyed out.
   static Color lampGreyed(String? signal) =>
-      signal == 'G' || signal == 'Y' || signal == 'R' ? const Color(0xFF8A94A6) : SignalColors.off;
+      signal == 'G' || signal == 'Y' || signal == 'R' ? const Color(0xFF9A948E) : SignalColors.off;
 
   static Color interval(String? interval) => switch (interval) {
         'green' => SignalColors.green,
@@ -25,7 +26,7 @@ class HwColors {
 
   static Color level(String? level) => switch (level) {
         'free' => StatusColors.ok,
-        'low' => Brand.teal,
+        'low' => const Color(0xFF84CC16), // lime: between free (green) and medium (amber)
         'medium' => StatusColors.warning,
         'high' => StatusColors.alert,
         _ => StatusColors.neutral,
@@ -66,7 +67,7 @@ class HwColors {
   static LinearGradient modeGradient(String? mode) => switch (mode) {
         'adaptive' => ModeColors.gradient('ADAPTIVE'),
         'fixed' => ModeColors.gradient('FIXED_TIME'),
-        _ => const LinearGradient(colors: [Color(0xFF64748B), Color(0xFF94A3B8)]),
+        _ => const LinearGradient(colors: [Color(0xFF57534E), Color(0xFFA8A29E)]),
       };
 
   static IconData modeIcon(String? mode) => switch (mode) {
@@ -88,7 +89,7 @@ class HwCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
+    return GlassCard(
       margin: EdgeInsets.zero,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),

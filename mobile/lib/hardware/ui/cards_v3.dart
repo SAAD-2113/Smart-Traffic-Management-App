@@ -8,6 +8,7 @@ import '../model/labels.dart';
 import '../model/v3_view.dart';
 import 'hw_style.dart';
 import 'intersection_view.dart';
+import '../../widgets/glass.dart';
 
 // Cards for firmware v3 state (four lanes, one green at a time). Every number shown comes from
 // the controller's state JSON; nothing is estimated by the app except the local countdown
@@ -544,7 +545,7 @@ class V3VehiclesCard extends StatelessWidget {
     final muted = theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     String n(num? v, [int d = 0, String unit = '']) => v == null ? dash : '${v.toStringAsFixed(d)}$unit';
     final showRtt = rttMs != null;
-    return Card(
+    return GlassCard(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: Theme(

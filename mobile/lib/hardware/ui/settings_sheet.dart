@@ -5,6 +5,7 @@ import '../../core/theme/app_theme.dart';
 import '../link/live_source.dart';
 import '../monitor.dart';
 import '../settings.dart';
+import '../../widgets/glass.dart';
 
 Future<void> showHardwareSettings(BuildContext context) {
   final monitor = context.read<HardwareMonitor>();
@@ -124,7 +125,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 Text('Simulator controls', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                 Text('These change the simulated data only.', style: muted),
                 const SizedBox(height: 8),
-                Card(
+                GlassCard(
                   margin: EdgeInsets.zero,
                   child: Column(children: [
                     ListTile(
@@ -154,7 +155,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 Text('Simulator controls (firmware v3 twin)', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                 Text('These change the simulated controller only, like typing in its Serial Monitor.', style: muted),
                 const SizedBox(height: 8),
-                Card(
+                GlassCard(
                   margin: EdgeInsets.zero,
                   child: Column(children: [
                     Padding(

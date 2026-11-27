@@ -11,6 +11,7 @@ import '../../widgets/common.dart';
 import '../../widgets/signal_widgets.dart';
 import 'intersection_detail_screen.dart';
 import 'live_controller.dart';
+import '../../widgets/glass.dart';
 
 /// Traffic control centre: what every signal is doing, why, and the network picture.
 class DashboardScreen extends StatelessWidget {
@@ -68,7 +69,7 @@ class DashboardScreen extends StatelessWidget {
                         const SectionHeader('Mode changes', subtitle: 'Switches between fixed-time and adaptive, newest first'),
                         _ModeLog(events: live.modeEvents),
                         const SectionHeader('Transmitting vehicles', subtitle: 'Last 30 minutes (since this screen opened)'),
-                        Card(
+                        GlassCard(
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
                             child: TimeLineChart(
@@ -84,7 +85,7 @@ class DashboardScreen extends StatelessWidget {
                           ),
                         ),
                         const SectionHeader('Average speed'),
-                        Card(
+                        GlassCard(
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
                             child: TimeLineChart(
@@ -188,7 +189,7 @@ class _ModeSummary extends StatelessWidget {
       ('ADAPTIVE', overview.adaptiveIntersections, 'Adaptive', 'Timing from current traffic'),
       ('EMERGENCY_PRIORITY', overview.emergencyPriorityIntersections, 'Emergency', 'Priority for an emergency vehicle'),
     ];
-    return Card(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -283,7 +284,7 @@ class _KeyFigures extends StatelessWidget {
         value: Units.speedValue(o.averageSpeedMps),
         unit: 'km/h',
         icon: Icons.speed,
-        accent: Brand.cyan,
+        accent: Brand.orange,
         caption: 'Live vehicles',
       ),
       StatTile(
@@ -306,7 +307,7 @@ class _KeyFigures extends StatelessWidget {
         value: Units.number(o.averageDensity, decimals: 1),
         unit: 'veh/km',
         icon: Icons.stacked_line_chart,
-        accent: Brand.teal,
+        accent: const Color(0xFFA16207),
         caption: 'Per lane, estimated',
       ),
       StatTile(
@@ -365,7 +366,7 @@ class _ModeLog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (events.isEmpty) {
-      return const Card(
+      return const GlassCard(
         child: Padding(
           padding: EdgeInsets.all(8),
           child: EmptyState(
@@ -377,7 +378,7 @@ class _ModeLog extends StatelessWidget {
         ),
       );
     }
-    return Card(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         child: Column(children: [
@@ -462,7 +463,7 @@ class _SystemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = overview.system;
-    return Card(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(children: [

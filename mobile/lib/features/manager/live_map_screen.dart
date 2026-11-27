@@ -17,6 +17,7 @@ import 'intersection_detail_screen.dart';
 import 'live_controller.dart';
 import 'manager_shell.dart';
 import 'vehicle_detail_screen.dart';
+import '../../widgets/glass.dart';
 
 class LiveMapScreen extends StatefulWidget {
   const LiveMapScreen({super.key});
@@ -184,7 +185,7 @@ class _LiveMapScreenState extends State<LiveMapScreen> {
             left: 0,
             right: 0,
             child: Center(
-              child: Card(
+              child: GlassCard(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   child: Text('${vehicles.length} vehicles · zoom in to see each one'),
@@ -404,7 +405,7 @@ class _MiniHead extends StatelessWidget {
         width: 22,
         height: 22,
         padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(6)),
+        decoration: BoxDecoration(color: const Color(0xFF141414), borderRadius: BorderRadius.circular(6)),
         child: DecoratedBox(decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
       );
 }
@@ -429,7 +430,7 @@ class _SignalLegend extends StatelessWidget {
             Text(label, style: theme.textTheme.labelSmall?.copyWith(fontWeight: FontWeight.w600)),
           ]),
         );
-    return Card(
+    return GlassCard(
       elevation: 3,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(10, 8, 12, 8),

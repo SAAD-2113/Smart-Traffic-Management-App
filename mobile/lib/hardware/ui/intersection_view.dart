@@ -105,7 +105,7 @@ class _RoadPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final c = size.center(Offset.zero);
-    final asphalt = Paint()..color = dark ? const Color(0xFF263250) : const Color(0xFFD5DCE8);
+    final asphalt = Paint()..color = dark ? const Color(0xFF2B2826) : const Color(0xFFE2DFDB);
     final r = Radius.circular(road * 0.18);
     canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: c, width: road, height: size.height), r), asphalt);
     canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: c, width: size.width, height: road), r), asphalt);
@@ -174,7 +174,7 @@ class _SignalHead extends StatelessWidget {
     final body = Container(
       padding: EdgeInsets.all(lamp * 0.15),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: const Color(0xFF141414),
         borderRadius: BorderRadius.circular(lamp * 0.45),
         border: Border.all(color: Colors.white.withValues(alpha: 0.85), width: 1.2),
       ),
@@ -217,10 +217,10 @@ class JunctionDot {
   final String? lane;
 
   static Color colorOf(String? state) => switch (state) {
-        'QUEUED' => const Color(0xFFF59E0B),
-        'APPROACHING' => const Color(0xFF2563EB),
+        'QUEUED' => const Color(0xFFEF4444),
+        'APPROACHING' => const Color(0xFFF59E0B),
         'CROSSING' => const Color(0xFF16A34A),
-        _ => const Color(0xFF94A3B8),
+        _ => const Color(0xFFA8A29E),
       };
 }
 
@@ -249,7 +249,7 @@ class _DotPainter extends CustomPainter {
         final arm = d.lane == null ? b : const {'N': 0.0, 'E': math.pi / 2, 'S': math.pi, 'W': 3 * math.pi / 2}[d.lane]!;
         p += Offset(math.sin(arm + math.pi / 2), -math.cos(arm + math.pi / 2)) * (road / 4);
       }
-      final color = live ? JunctionDot.colorOf(d.state) : const Color(0xFF94A3B8);
+      final color = live ? JunctionDot.colorOf(d.state) : const Color(0xFFA8A29E);
       final radius = d.emergency ? 7.5 : 6.0;
       canvas.drawCircle(p, radius + 1.5, Paint()..color = Colors.white);
       canvas.drawCircle(p, radius, Paint()..color = color);
@@ -288,13 +288,13 @@ class _LaneDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = live ? HwColors.lamp(signal) : const Color(0xFF8A94A6);
+    final color = live ? HwColors.lamp(signal) : const Color(0xFF9A948E);
     return Container(
       width: width,
       height: height,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1220),
+        color: const Color(0xFF0E0E0E),
         borderRadius: BorderRadius.circular(height * 0.22),
         border: Border.all(color: Colors.white.withValues(alpha: 0.6)),
       ),
@@ -303,7 +303,7 @@ class _LaneDisplay extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: height * 0.2),
           child: Text(text ?? '--:--',
               style: TextStyle(
-                color: text == null ? const Color(0xFF8A94A6) : (signal == 'Y' ? const Color(0xFFFFD54F) : color),
+                color: text == null ? const Color(0xFF9A948E) : (signal == 'Y' ? const Color(0xFFFFD54F) : color),
                 fontWeight: FontWeight.w900,
                 fontSize: height * 0.7,
                 letterSpacing: 1,

@@ -13,6 +13,7 @@ import 'cards.dart';
 import 'cards_v3.dart';
 import 'hw_style.dart';
 import 'settings_sheet.dart';
+import '../../widgets/glass.dart';
 
 /// The Hardware Intersection Monitor. Read-only: it shows what the ESP32 reports and never
 /// sends commands (mode changes happen on the controller's physical button).
@@ -317,7 +318,7 @@ class _EvPopup extends StatelessWidget {
                   key: ValueKey(n),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 520),
-                    child: Card(
+                    child: GlassCard(
                       key: const ValueKey('ev-popup'),
                       elevation: 10,
                       margin: EdgeInsets.zero,

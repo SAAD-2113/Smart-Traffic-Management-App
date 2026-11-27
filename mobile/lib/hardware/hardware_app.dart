@@ -6,6 +6,7 @@ import '../core/storage/kv_store.dart';
 import '../core/theme/app_theme.dart';
 import 'monitor.dart';
 import 'ui/dashboard_screen.dart';
+import '../widgets/glass.dart';
 
 /// Hardware Prototype mode: the read-only monitor of the ESP32 intersection.
 /// No login, no server: the only connection is the controller's WebSocket (or the simulator).
@@ -39,6 +40,7 @@ class _HardwareAppState extends State<HardwareApp> {
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
         themeMode: config.themeMode,
+        builder: GlassBackdrop.builder,
         home: const HardwareDashboardScreen(),
       ),
     );

@@ -10,6 +10,7 @@ import '../../widgets/charts.dart';
 import '../../widgets/common.dart';
 import 'live_controller.dart';
 import 'manager_shell.dart';
+import '../../widgets/glass.dart';
 
 /// Emergency vehicles: what is active now, authorisation requests to review, and history.
 class EmergencyAdminScreen extends StatelessWidget {
@@ -48,7 +49,7 @@ class _ActiveTab extends StatelessWidget {
     }
     return ListView(padding: const EdgeInsets.all(16), children: [
       for (final e in live.emergencies)
-        Card(
+        GlassCard(
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -170,7 +171,7 @@ class _RequestsTabState extends State<_RequestsTab> {
           onRefresh: _reload,
           child: ListView(padding: const EdgeInsets.all(16), children: [
             for (final r in items)
-              Card(
+              GlassCard(
                 child: ListTile(
                   leading: Icon(r.status == 'PENDING' ? Icons.hourglass_top : Icons.verified_user,
                       color: switch (r.status) {
@@ -246,7 +247,7 @@ class _HistoryTabState extends State<_HistoryTab> {
           onRefresh: _reload,
           child: ListView(padding: const EdgeInsets.all(16), children: [
             const SectionHeader('Emergency activations per hour'),
-            Card(
+            GlassCard(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
                 child: CategoryBarChart(

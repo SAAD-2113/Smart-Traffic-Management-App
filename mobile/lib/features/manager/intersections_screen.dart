@@ -11,6 +11,7 @@ import '../../widgets/signal_widgets.dart';
 import 'intersection_detail_screen.dart';
 import 'live_controller.dart';
 import 'manager_shell.dart';
+import '../../widgets/glass.dart';
 
 class IntersectionsScreen extends StatelessWidget {
   const IntersectionsScreen({super.key});
@@ -42,7 +43,7 @@ class IntersectionsScreen extends StatelessWidget {
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, i) {
                   final n = items[i];
-                  return Card(
+                  return GlassCard(
                     child: InkWell(
                       borderRadius: BorderRadius.circular(14),
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => IntersectionDetailScreen(intersectionId: n.id))),

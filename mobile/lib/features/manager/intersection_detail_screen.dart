@@ -13,6 +13,7 @@ import '../../widgets/common.dart';
 import '../../widgets/signal_widgets.dart';
 import 'live_controller.dart';
 import 'signal_plan_screen.dart';
+import '../../widgets/glass.dart';
 
 class IntersectionDetailScreen extends StatefulWidget {
   const IntersectionDetailScreen({super.key, required this.intersectionId});
@@ -106,7 +107,7 @@ class _IntersectionDetailScreenState extends State<IntersectionDetailScreen> {
               ControlCard(item: t, serverNow: () => live.serverNow),
               if (_modeEvents.isNotEmpty) ...[
                 const SectionHeader('Mode changes here'),
-                Card(
+                GlassCard(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     child: Column(children: [
@@ -129,7 +130,7 @@ class _IntersectionDetailScreenState extends State<IntersectionDetailScreen> {
               if (_history == null)
                 const LoadingView()
               else ...[
-                Card(
+                GlassCard(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
                     child: TimeLineChart(unit: 'vehicles', decimals: 1, series: [
@@ -142,7 +143,7 @@ class _IntersectionDetailScreenState extends State<IntersectionDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Card(
+                GlassCard(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
                     child: TimeLineChart(unit: 'km/h', series: [
@@ -173,7 +174,7 @@ class _MetricsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final o = t.observed, c = t.calculated, e = t.estimated;
-    Widget group(String title, String subtitle, List<Widget> rows) => Card(
+    Widget group(String title, String subtitle, List<Widget> rows) => GlassCard(
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -217,9 +218,9 @@ class _ApproachTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (approaches.isEmpty) {
-      return const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('No approaches configured.')));
+      return const GlassCard(child: Padding(padding: EdgeInsets.all(16), child: Text('No approaches configured.')));
     }
-    return Card(
+    return GlassCard(
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
@@ -260,9 +261,9 @@ class _Coordination extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (t.upstream.isEmpty && t.downstream.isEmpty) {
-      return const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('No links to other intersections.')));
+      return const GlassCard(child: Padding(padding: EdgeInsets.all(16), child: Text('No links to other intersections.')));
     }
-    return Card(
+    return GlassCard(
       child: Column(children: [
         for (final u in t.upstream)
           ListTile(
@@ -292,7 +293,7 @@ class _SignalCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = t.signal;
     final d = t.decision;
-    return Card(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -347,7 +348,7 @@ class _ConfigCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

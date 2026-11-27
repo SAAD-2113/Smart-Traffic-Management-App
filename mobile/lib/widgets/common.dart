@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../core/network/api_exception.dart';
 import '../core/theme/app_theme.dart';
+import 'glass.dart';
 
 class StatusChip extends StatelessWidget {
   const StatusChip({super.key, required this.label, required this.color, this.icon, this.filled = false});
@@ -98,7 +99,7 @@ class MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = color ?? theme.colorScheme.primary;
-    return Card(
+    return GlassCard(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,

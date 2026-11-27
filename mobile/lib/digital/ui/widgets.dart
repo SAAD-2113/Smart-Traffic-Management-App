@@ -137,7 +137,7 @@ class _LogCardState extends State<LogCard> {
             if (lines.isEmpty) return Text('Nothing logged yet.', style: theme.textTheme.bodyMedium);
             return Container(
               height: 320,
-              decoration: BoxDecoration(color: const Color(0xFF0B1220), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: const Color(0xFF0E0E0E), borderRadius: BorderRadius.circular(10)),
               child: ListView.builder(
                 key: const ValueKey('log-list'),
                 padding: const EdgeInsets.all(8),
@@ -154,9 +154,9 @@ class _LogCardState extends State<LogCard> {
                       color: switch (l.tag) {
                         'PRIO' => const Color(0xFFFF8A80),
                         'SIG' => const Color(0xFFB9F6CA),
-                        'MODE' || 'PLAN' => const Color(0xFFCE93D8),
+                        'MODE' || 'PLAN' => const Color(0xFFFFE082),
                         'RX!' || 'LOST' || 'MISMATCH' || 'TX!' => const Color(0xFFFFD180),
-                        _ => const Color(0xFFCFD8E3),
+                        _ => const Color(0xFFE7E5E4),
                       },
                     ),
                   );

@@ -7,6 +7,7 @@ import '../../data/models/vehicle.dart';
 import '../../services/tracking_controller.dart';
 import '../../widgets/common.dart';
 import 'driver_controller.dart';
+import '../../widgets/glass.dart';
 
 /// Emergency mode for authorised ambulance, fire and police vehicles.
 /// Activation needs a 2-second press-and-hold and a confirmation; the server re-checks
@@ -84,7 +85,7 @@ class _EmergencyScreenState extends State<EmergencyScreen> {
       body: RefreshIndicator(
         onRefresh: driver.refreshEmergency,
         child: ListView(padding: const EdgeInsets.all(16), children: [
-          Card(
+          GlassCard(
             color: active ? StatusColors.emergency : null,
             child: Padding(
               padding: const EdgeInsets.all(24),

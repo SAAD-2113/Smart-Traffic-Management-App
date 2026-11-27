@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/theme/app_theme.dart';
+import 'glass.dart';
 
 /// Gradient hero header with a title, an optional subtitle, actions and extra content.
 class GradientHeader extends StatelessWidget {
@@ -30,12 +31,15 @@ class GradientHeader extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: gradient,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
-        boxShadow: [BoxShadow(color: Brand.navy.withValues(alpha: 0.25), blurRadius: 18, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 6))],
       ),
       child: Stack(children: [
-        // Soft decorative rings: depth without noise.
-        Positioned(right: -40, top: -30, child: _Ring(size: 170, opacity: 0.08)),
-        Positioned(right: 50, bottom: -60, child: _Ring(size: 120, opacity: 0.06)),
+        // Signal glows behind the asphalt glass: red, amber, green.
+        const Positioned(right: -50, top: -60, child: _Glow(size: 200, color: Brand.red, opacity: 0.38)),
+        const Positioned(right: 70, bottom: -90, child: _Glow(size: 170, color: Brand.amber, opacity: 0.26)),
+        const Positioned(left: -70, bottom: -80, child: _Glow(size: 190, color: Brand.green, opacity: 0.30)),
+        // The three lamps as a hairline along the bottom edge.
+        const Positioned(left: 24, right: 24, bottom: 0, child: SignalStripe()),
         Padding(
           padding: padding.copyWith(top: padding.top + top),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -75,9 +79,10 @@ class GradientHeader extends StatelessWidget {
   }
 }
 
-class _Ring extends StatelessWidget {
-  const _Ring({required this.size, required this.opacity});
+class _Glow extends StatelessWidget {
+  const _Glow({required this.size, required this.color, required this.opacity});
   final double size;
+  final Color color;
   final double opacity;
 
   @override
@@ -87,10 +92,78 @@ class _Ring extends StatelessWidget {
           height: size,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: opacity), width: 22),
+            gradient: RadialGradient(colors: [color.withValues(alpha: opacity), color.withValues(alpha: 0)]),
           ),
         ),
       );
+}
+
+/// A thin red / amber / green line: the three lamps as an accent.
+class SignalStripe extends StatelessWidget {
+  const SignalStripe({super.key, this.height = 3});
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+        borderRadius: BorderRadius.circular(height),
+        child: SizedBox(
+          height: height,
+          child: const Row(children: [
+            Expanded(child: ColoredBox(color: Brand.red)),
+            Expanded(child: ColoredBox(color: Brand.amber)),
+            Expanded(child: ColoredBox(color: Brand.green)),
+          ]),
+        ),
+      );
+}
+
+/// The app's mark: a traffic light (asphalt housing, red / amber / green lamps with a glow),
+/// the same drawing as the launcher icon.
+class TrafficLightLogo extends StatelessWidget {
+  const TrafficLightLogo({super.key, this.size = 72});
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final lamp = size * 0.2;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: Brand.hero,
+        borderRadius: BorderRadius.circular(size * 0.28),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+        boxShadow: [
+          BoxShadow(color: Brand.red.withValues(alpha: 0.28), blurRadius: size * 0.3, offset: Offset(-size * 0.08, -size * 0.04)),
+          BoxShadow(color: Brand.green.withValues(alpha: 0.28), blurRadius: size * 0.3, offset: Offset(size * 0.08, size * 0.08)),
+        ],
+      ),
+      child: Center(
+        child: Container(
+          width: size * 0.36,
+          padding: EdgeInsets.symmetric(vertical: size * 0.05),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0A0A0A),
+            borderRadius: BorderRadius.circular(size * 0.1),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
+          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            for (final c in Brand.signals)
+              Container(
+                width: lamp,
+                height: lamp,
+                margin: EdgeInsets.symmetric(vertical: size * 0.022),
+                decoration: BoxDecoration(
+                  color: c,
+                  shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: c.withValues(alpha: 0.75), blurRadius: lamp * 0.7)],
+                ),
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
 }
 
 /// Small translucent pill for use on gradient headers.
@@ -153,7 +226,7 @@ class StatTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final color = accent ?? theme.colorScheme.primary;
-    return Card(
+    return GlassCard(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -238,7 +311,7 @@ class GradientButton extends StatelessWidget {
           gradient: gradient,
           borderRadius: BorderRadius.circular(16),
           boxShadow: enabled
-              ? [BoxShadow(color: Brand.blue.withValues(alpha: 0.3), blurRadius: 14, offset: const Offset(0, 5))]
+              ? [BoxShadow(color: Brand.green.withValues(alpha: 0.32), blurRadius: 14, offset: const Offset(0, 5))]
               : null,
         ),
         child: Material(

@@ -7,6 +7,7 @@ import '../../data/models/traffic.dart';
 import '../../data/repositories/manager_repository.dart';
 import '../../widgets/charts.dart';
 import '../../widgets/common.dart';
+import '../../widgets/glass.dart';
 
 /// Traffic history per intersection (one colour per intersection, same order everywhere).
 class HistoryScreen extends StatefulWidget {
@@ -72,7 +73,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SectionHeader(title, subtitle: subtitle),
-                      Card(
+                      GlassCard(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
                           child: TimeLineChart(unit: unit, series: data, decimals: decimals, height: 210),

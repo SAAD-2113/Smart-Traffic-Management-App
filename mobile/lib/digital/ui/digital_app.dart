@@ -19,6 +19,7 @@ import '../transport/http_vehicle.dart';
 import '../transport/lan_server.dart';
 import '../transport/links.dart';
 import 'digital_home.dart';
+import '../../widgets/glass.dart';
 
 /// Creates the transports and the monotonic clock of the controllers. The app uses the cloud
 /// relay and a Stopwatch; tests use the in-app loopback and the test clock.
@@ -75,6 +76,7 @@ class DigitalApp extends StatelessWidget {
           theme: AppTheme.light(),
           darkTheme: AppTheme.dark(),
           themeMode: config.themeMode,
+          builder: GlassBackdrop.builder,
           home: const DigitalGate(),
         ),
       ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../core/theme/app_theme.dart';
+import '../widgets/brand.dart';
+import '../widgets/glass.dart';
 import 'app_mode.dart';
 
 /// First screen on launch (before any login): Hardware Prototype, Software System or Digital V2I.
@@ -27,7 +29,7 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
         title: 'Hardware Prototype',
         subtitle: 'Live monitor for the physical V2I intersection',
         note: 'Works offline · no login · read-only',
-        gradient: const LinearGradient(colors: [Color(0xFF0F766E), Color(0xFF14B8A6)]),
+        gradient: const LinearGradient(colors: [Color(0xFFB45309), Color(0xFFF59E0B)]),
         onTap: () => _choose(AppMode.hardware),
       ),
       _ModeCard(
@@ -45,81 +47,64 @@ class _ModeSelectionScreenState extends State<ModeSelectionScreen> {
         title: 'Digital V2I',
         subtitle: 'Phones as the intersection and the vehicles (firmware v3 twin)',
         note: 'Sign in · needs the server',
-        gradient: const LinearGradient(colors: [Color(0xFF6D28D9), Color(0xFFA855F7)]),
+        gradient: const LinearGradient(colors: [Color(0xFFB91C1C), Color(0xFFF97316)]),
         onTap: () => _choose(AppMode.digital),
       ),
     ];
+    final theme = Theme.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: Brand.hero),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: wide ? 1040 : 460),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        gradient: Brand.action,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [BoxShadow(color: Brand.cyan.withValues(alpha: 0.45), blurRadius: 24)],
-                      ),
-                      child: const Icon(Icons.traffic, size: 46, color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Smart Traffic',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
-                  const SizedBox(height: 4),
-                  Text('Choose how to use the app',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 15)),
-                  const SizedBox(height: 24),
-                  if (wide)
-                    IntrinsicHeight(
-                      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                        for (var i = 0; i < cards.length; i++) ...[
-                          if (i > 0) const SizedBox(width: 16),
-                          Expanded(child: cards[i]),
-                        ],
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: wide ? 1040 : 460),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                const Center(child: TrafficLightLogo(size: 92)),
+                const SizedBox(height: 16),
+                Text('Smart Traffic',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: theme.colorScheme.onSurface, fontSize: 30, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+                const SizedBox(height: 4),
+                Text('Choose how to use the app', textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 15)),
+                const SizedBox(height: 24),
+                if (wide)
+                  IntrinsicHeight(
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                      for (var i = 0; i < cards.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 16),
+                        Expanded(child: cards[i]),
+                      ],
+                    ]),
+                  )
+                else
+                  for (var i = 0; i < cards.length; i++) ...[
+                    if (i > 0) const SizedBox(height: 14),
+                    cards[i],
+                  ],
+                const SizedBox(height: 18),
+                Center(
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => setState(() => _remember = !_remember),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+                      child: Row(mainAxisSize: MainAxisSize.min, children: [
+                        Checkbox(
+                          value: _remember,
+                          onChanged: (v) => setState(() => _remember = v ?? false),
+                        ),
+                        const Text('Remember my choice', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                       ]),
-                    )
-                  else
-                    for (var i = 0; i < cards.length; i++) ...[
-                      if (i > 0) const SizedBox(height: 14),
-                      cards[i],
-                    ],
-                  const SizedBox(height: 18),
-                  Center(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(10),
-                      onTap: () => setState(() => _remember = !_remember),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Checkbox(
-                            value: _remember,
-                            onChanged: (v) => setState(() => _remember = v ?? false),
-                            side: const BorderSide(color: Colors.white70, width: 1.6),
-                            checkColor: Brand.navy,
-                            fillColor: WidgetStateProperty.resolveWith(
-                                (s) => s.contains(WidgetState.selected) ? Colors.white : Colors.transparent),
-                          ),
-                          const Text('Remember my choice',
-                              style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
-                        ]),
-                      ),
                     ),
                   ),
-                  Text('You can change it later with "Switch mode".',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 12.5)),
-                ]),
-              ),
+                ),
+                Text('You can change it later with "Switch mode".',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: muted, fontSize: 12.5)),
+              ]),
             ),
           ),
         ),
@@ -149,7 +134,7 @@ class _ModeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
+    return GlassCard(
       margin: EdgeInsets.zero,
       clipBehavior: Clip.antiAlias,
       child: InkWell(

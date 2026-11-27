@@ -11,6 +11,7 @@ import '../../data/models/vehicle.dart';
 import '../../data/repositories/manager_repository.dart';
 import '../../widgets/common.dart';
 import 'live_map_screen.dart';
+import '../../widgets/glass.dart';
 
 /// Operational view of one vehicle. Shows no owner identity (privacy by design);
 /// administrators can see ownership through the admin API only.
@@ -94,9 +95,9 @@ class _VehicleDetailScreenState extends State<VehicleDetailScreen> {
                   ]),
                   const SectionHeader('Latest telemetry'),
                   if (v.live == null)
-                    const Card(child: Padding(padding: EdgeInsets.all(16), child: Text('This vehicle has not reported a position yet.')))
+                    const GlassCard(child: Padding(padding: EdgeInsets.all(16), child: Text('This vehicle has not reported a position yet.')))
                   else
-                    Card(
+                    GlassCard(
                       child: Padding(
                         padding: const EdgeInsets.all(14),
                         child: Column(children: [

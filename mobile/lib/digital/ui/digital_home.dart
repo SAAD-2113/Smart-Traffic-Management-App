@@ -14,7 +14,7 @@ import 'host_home.dart';
 const digitalGradient = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
-  colors: [Color(0xFF2E1065), Color(0xFF6D28D9), Color(0xFF9333EA)],
+  colors: [Color(0xFF120806), Color(0xFF7F1D1D), Color(0xFFC2410C)],
 );
 
 /// After sign-in: what this account is in Digital V2I comes from the server (/v2i/me).
