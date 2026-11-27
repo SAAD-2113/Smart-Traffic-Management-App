@@ -1,16 +1,22 @@
 # Android APK
 
-## 1.4.1 (current): GitHub Releases
+## 1.4.2 (current): GitHub Releases
 
-Smart Traffic app 1.4.1, package `com.fyp.smart_traffic`, built by GitHub Actions with the
+Smart Traffic app 1.4.2, package `com.fyp.smart_traffic`, built by GitHub Actions with the
 standard `flutter build apk --release`.
 
 **Download:** the repository's [Releases page](https://github.com/SAAD-2113/Smart-Traffic-Management-App/releases)
-→ **Smart Traffic v1.4.1** → `smart-traffic-v1.4.1.apk` (one file for 64-bit and 32-bit ARM phones and
+→ **Smart Traffic v1.4.2** → `smart-traffic-v1.4.2.apk` (one file for 64-bit and 32-bit ARM phones and
 x86_64 emulators). No GitHub sign-in is needed. CI publishes a release by itself whenever `main`
 gets a new version number in `mobile/pubspec.yaml`.
 
-What's new in 1.4.1:
+What's new in 1.4.2:
+- Bottom sheets, dialogs and menus are opaque: the text of the screen behind no longer shows through.
+- Web build: Hardware mode's simulator works (it showed a grey screen), and Digital V2I rejects a
+  vehicle id written as a decimal (`"id":7.0`) as the ESP32 does. The Android app was not affected
+  by these two.
+
+What 1.4.1 added:
 - The server address is preset to the hosted server,
   `https://smart-traffic-management-app.onrender.com`, so a new install can sign in straight away.
   **Server** on the login screen still changes it (for example to a PC on the same Wi-Fi). An address
@@ -45,7 +51,7 @@ What 1.3.0 added:
 | Signed with | the Android **debug** key of the CI runner (the repository has no release-key secrets) |
 
 **Uninstall the old app first** (1.2.0, or a 1.3.0 CI build). They were signed with different
-keys, so Android refuses to install 1.4.1 over them. Uninstalling removes what is stored on the phone: the server address, the
+keys, so Android refuses to install 1.4.2 over them. Uninstalling removes what is stored on the phone: the server address, the
 remembered mode, the sign-in and any GPS points still waiting in the offline queue (finish uploading
 first). Accounts, vehicles and trips already sent stay on the server.
 
@@ -54,7 +60,7 @@ every CI build install over the previous one, add four repository secrets
 (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`, `ANDROID_STORE_PASSWORD`).
 `.github/workflows/ci.yml` then signs with your key (see `mobile/android/app/build.gradle.kts`).
 
-Not yet done with 1.4.1: installing it on a physical phone. Do that first (`docs/DIGITAL_V2I.md`,
+Not yet done with 1.4.2: installing it on a physical phone. Do that first (`docs/DIGITAL_V2I.md`,
 "What has not been verified").
 
 ## 1.2.0 (the files in this folder; no Digital V2I)
