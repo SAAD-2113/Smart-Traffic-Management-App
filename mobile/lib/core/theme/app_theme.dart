@@ -48,9 +48,9 @@ class Glass {
   static Color bar(Brightness b) =>
       b == Brightness.dark ? Colors.black.withValues(alpha: 0.55) : Colors.white.withValues(alpha: 0.72);
 
-  /// Dialogs and sheets sit over content, so they are nearly opaque for legibility.
-  static Color sheet(Brightness b) =>
-      b == Brightness.dark ? const Color(0xF2121212) : const Color(0xF5FFFFFF);
+  /// Dialogs, sheets and menus sit over content, so they are opaque (with the glass border),
+  /// or the text underneath would show through.
+  static Color sheet(Brightness b) => b == Brightness.dark ? const Color(0xFF141414) : Colors.white;
 
   static Color background(Brightness b) => b == Brightness.dark ? Colors.black : Colors.white;
 }
