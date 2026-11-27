@@ -1,0 +1,45 @@
+name: Keep Render awake
+
+# Render's free web service sleeps after about 15 minutes without requests, and the next request
+# then waits up to a minute. This pings the health endpoint every 10 minutes so the server stays
+# awake. GitHub can start scheduled runs a few minutes late, and it pauses schedules in a public
+# repository after 60 days without commits (re-enable under Actions -> Keep Render awake).
+#
+# The address can be changed without editing this file: repository Settings -> Secrets and
+# variables -> Actions -> Variables -> KEEP_AWAKE_URL (the server address, without a path).
+on:
+  schedule:
+    # Off the busy top of the hour; scheduled workflows run from the default branch.
+    - cron: "4,14,24,34,44,54 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keep-awake
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Ping the server
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: GET /api/v1/health
+        env:
+          SERVER: ${{ vars.KEEP_AWAKE_URL || 'https://smart-traffic-management-app.onrender.com' }}
+        run: |
+          url="${SERVER%/}/api/v1/health"
+          for attempt in 1 2 3; do
+            # A sleeping instance takes up to about a minute to answer the first request.
+            code=$(curl -s -o health.json -w '%{http_code}' --max-time 90 "$url" || true)
+            if [ "$code" = "200" ]; then
+              echo "awake: $(cat health.json)"
+              exit 0
+            fi
+            echo "attempt $attempt: HTTP ${code:-none}"
+            sleep 20
+          done
+          # A warning, not a failure: a red run every 10 minutes would mean an email every
+          # 10 minutes while the server is down. Render's dashboard shows why it is down.
+          echo "::warning::$url did not answer with 200 after 3 attempts"

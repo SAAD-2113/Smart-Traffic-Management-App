@@ -22,6 +22,13 @@ any commands.
 - The free web service **sleeps after about 15 minutes** without use. The next request wakes it up,
   which takes up to about a minute; the app waits for it and shows a message while it waits. While a
   phone is tracking, the server stays awake.
+- **Keeping it awake:** the repository's `Keep Render awake` workflow (`.github/workflows/keep-awake.yml`)
+  calls `/api/v1/health` every 10 minutes, so the server does not fall asleep. That keeps one service
+  running all month, which uses about 730 of the workspace's 750 free instance hours: do not run a
+  second free web service in the same Render workspace while it is on. To stop it: GitHub → **Actions**
+  → **Keep Render awake** → **⋯** → **Disable workflow**. For another address, set the repository
+  variable `KEEP_AWAKE_URL` (Settings → Secrets and variables → Actions → Variables). GitHub may start
+  a scheduled run a few minutes late, and pauses the schedule after 60 days without commits.
 - Render's **free database is time-limited** (30 days when this guide was written; check
   render.com/pricing). When it expires, its data is deleted. For a longer project, upgrade the database
   to a paid plan, or use another PostgreSQL provider (see "Using another database" below).
