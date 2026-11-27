@@ -16,8 +16,9 @@ class AppConfig extends ChangeNotifier {
   static const _kInstallationId = 'installation_id';
   static const _kSelectedVehicle = 'selected_vehicle';
 
-  /// Android emulator address of the host machine. Real phones need the PC's LAN address.
-  static const defaultServerUrl = 'http://10.0.2.2:8000';
+  /// The hosted server (Render). Change it under Server on the login screen to use another one,
+  /// e.g. a PC on the same Wi-Fi (`http://<PC address>:8000`). The web build uses its own origin.
+  static const defaultServerUrl = 'https://smart-traffic-management-app.onrender.com';
   static const defaultTileUrl = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 
   final KeyValueStore _prefs;

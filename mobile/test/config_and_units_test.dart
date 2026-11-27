@@ -30,6 +30,17 @@ void main() {
       expect(RegExp(r'^[A-Za-z0-9-]{8,64}$').hasMatch(a.installationId), isTrue);
     });
 
+    test('a fresh install talks to the hosted server over HTTPS; a saved address wins', () async {
+      final store = MemoryKeyValueStore();
+      final config = await AppConfig.load(store);
+      expect(config.serverUrl, 'https://smart-traffic-management-app.onrender.com');
+      expect(config.apiBaseUrl, 'https://smart-traffic-management-app.onrender.com/api/v1');
+      expect(config.isInsecureRemote, isFalse);
+      expect(AppConfig.validateServerUrl(AppConfig.defaultServerUrl), isNull);
+      await config.setServerUrl('http://192.168.1.20:8000');
+      expect((await AppConfig.load(store)).serverUrl, 'http://192.168.1.20:8000');
+    });
+
     test('settings persist', () async {
       final store = MemoryKeyValueStore();
       final config = await AppConfig.load(store);

@@ -54,6 +54,10 @@ If the deploy failed, open **Logs**. A line starting with `bootstrap failed:` na
 
 ## 4. Connect the app
 
+The app (1.4.1 and later) is preset to the project's server,
+`https://smart-traffic-management-app.onrender.com`. With that server, just sign in. With your own
+deployment, set its address once:
+
 1. Open the app. On the login screen, tap **Server**.
 2. Enter your address, with `https://` and **without** `:8000`, e.g. `https://smart-traffic-api.onrender.com`.
 3. Tap **Test**, wait for "Connected" (up to a minute if the server was asleep), then **Save**.

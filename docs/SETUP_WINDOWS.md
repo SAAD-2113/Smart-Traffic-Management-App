@@ -115,7 +115,7 @@ backend over HTTPS with a tunnel (e.g. Cloudflare Tunnel) and start uvicorn with
 
 ## 5. Install the Android app
 
-**Provided APK:** download the current one (1.4.0) from the repository's GitHub Releases page, as described in
+**Provided APK:** download the current one (1.4.1) from the repository's GitHub Releases page, as described in
 `dist/README.md` (uninstall an older version first; the signing key changed). The older 1.2.0 is in `dist/`: `smart-traffic-v1.2.0-arm64-v8a.apk` (most phones) or the universal
 `smart-traffic-v1.2.0.apk`. Copy the APK to the phone and open it (allow "Install unknown apps"
 for your file manager when asked). Android 7.0 or newer.
@@ -154,7 +154,8 @@ installed over the provided one; uninstall the old app first.
 
 ## 6. Use the app
 
-1. On the login screen, tap **Server** and enter `http://<PC IP>:8000`, then **Test** and **Save**.
+1. On the login screen, tap **Server** and enter `http://<PC IP>:8000` (the app is preset to the hosted
+   server), then **Test** and **Save**.
 2. **Driver:** Create account → register a vehicle (the server gives it a Vehicle ID) → **Start
    tracking** → allow location "While using the app" and notifications. Keep the phone on the dashboard;
    tracking continues with the screen off (a notification is shown).
